@@ -1,0 +1,9 @@
+# Jupyter caching
+.ipynb_checkpoints
+
+# Python's Virtual env
+nlp-proj-env
+
+# Pycharm
+.idea
+desktop.ini
