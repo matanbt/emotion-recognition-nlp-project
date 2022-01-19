@@ -37,6 +37,8 @@ def train(args,
           train_dataset,
           dev_dataset=None,
           test_dataset=None):
+    logger.info("***** Preparing Training *****")
+
     train_sampler = RandomSampler(train_dataset)
     train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=args.train_batch_size)
     if args.max_steps > 0:
@@ -119,23 +121,7 @@ def train(args,
                         evaluate(args, model, dev_dataset, "dev", global_step)
 
                 if args.save_steps > 0 and global_step % args.save_steps == 0:
-                    # Save model checkpoint
-                    output_dir = os.path.join(args.output_dir, "checkpoint-{}".format(global_step))
-                    if not os.path.exists(output_dir):
-                        os.makedirs(output_dir)
-                    model_to_save = (
-                        model.module if hasattr(model, "module") else model
-                    )
-                    model_to_save.save_pretrained(output_dir)
-                    tokenizer.save_pretrained(output_dir)
-
-                    torch.save(args, os.path.join(output_dir, "training_args.bin"))
-                    logger.info("Saving model checkpoint to {}".format(output_dir))
-
-                    if args.save_optimizer:
-                        torch.save(optimizer.state_dict(), os.path.join(output_dir, "optimizer.pt"))
-                        torch.save(scheduler.state_dict(), os.path.join(output_dir, "scheduler.pt"))
-                        logger.info("Saving optimizer and scheduler states to {}".format(output_dir))
+                    save_model_checkpoint(args, model, tokenizer, global_step, optimizer, scheduler)
 
             if args.max_steps > 0 and global_step > args.max_steps:
                 break
@@ -143,7 +129,38 @@ def train(args,
         if args.max_steps > 0 and global_step > args.max_steps:
             break
 
+    # Saves the final state of the model
+    logger.info("Saving model final checkpoint...")
+    save_model_checkpoint(args, model, tokenizer, global_step, optimizer, scheduler)
+
+    logger.info("***** Finished Training *****")
+
     return global_step, tr_loss / global_step
+
+
+def save_model_checkpoint(args,
+                          model, tokenizer,
+                          global_step,
+                          optimizer, scheduler):
+    """
+        Saves the current model in a checkpoint dir
+    """
+    output_dir = os.path.join(args.output_dir, "checkpoint-{}".format(global_step))
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    model_to_save = (
+        model.module if hasattr(model, "module") else model
+    )
+    model_to_save.save_pretrained(output_dir)
+    tokenizer.save_pretrained(output_dir)
+
+    torch.save(args, os.path.join(output_dir, "training_args.bin"))
+    logger.info("Saving model checkpoint to {}".format(output_dir))
+
+    if args.save_optimizer:
+        torch.save(optimizer.state_dict(), os.path.join(output_dir, "optimizer.pt"))
+        torch.save(scheduler.state_dict(), os.path.join(output_dir, "scheduler.pt"))
+        logger.info("Saving optimizer and scheduler states to {}".format(output_dir))
 
 
 def evaluate(args, model, eval_dataset, mode, global_step=None):
