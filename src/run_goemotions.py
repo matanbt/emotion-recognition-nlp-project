@@ -20,6 +20,7 @@ from transformers import (
 from model import BertForMultiLabelClassification
 from utils import (
     init_logger,
+    init_tensorboard_writer,
     set_seed,
     compute_metrics
 )
@@ -29,6 +30,7 @@ from data_loader import (
 )
 
 logger = logging.getLogger(__name__)
+tb_writer = None  # initialized in main()
 
 
 def train(args,
@@ -223,19 +225,28 @@ def evaluate(args, model, eval_dataset, mode, global_step=None):
             logger.info("  {} = {}".format(key, str(results[key])))
             f_w.write("  {} = {}\n".format(key, str(results[key])))
 
+    # logs the results to TensorBoard
+    tb_writer.add_scalars(mode, results, global_step=global_step)
+
     return results
 
 
 def main(cli_args):
+    logger.info("***** Starting main() *****")
+
+    # --- Initializations ---
     # Read from config file and make args
     config_filename = "{}.json".format(cli_args.taxonomy)
     with open(os.path.join("config", config_filename)) as f:
         args = AttrDict(json.load(f))
     logger.info("Training/evaluation parameters {}".format(args))
 
-    args.output_dir = os.path.join(args.ckpt_dir, args.output_dir)
+    # args.output_dir = ... # TODO add time-stamp to path
 
     init_logger()
+    global tb_writer  # we define the TensorBoard summary-writer to be used across the file
+    tb_writer = init_tensorboard_writer(os.path.join(args.output_dir, "tb_summary"))
+
     set_seed(args)
 
     processor = GoEmotionsProcessor(args)
@@ -291,16 +302,22 @@ def main(cli_args):
             result = dict((k + "_{}".format(global_step), v) for k, v in result.items())
             results.update(result)
 
+        logger.info("Evaluate the following checkpoints: %s", checkpoints)
+
         output_eval_file = os.path.join(args.output_dir, "eval_results.txt")
         with open(output_eval_file, "w") as f_w:
             for key in sorted(results.keys()):
                 f_w.write("{} = {}\n".format(key, str(results[key])))
 
+        tb_writer.close()
+
+        logger.info("***** Finished main() *****")
 
 if __name__ == '__main__':
     cli_parser = argparse.ArgumentParser()
 
-    cli_parser.add_argument("--taxonomy", type=str, required=True, help="Taxonomy (original, ekman, group)")
+    cli_parser.add_argument("--taxonomy", type=str, required=True,
+                            help="Taxonomy (original, ekman, group)")
 
     cli_args = cli_parser.parse_args()
 

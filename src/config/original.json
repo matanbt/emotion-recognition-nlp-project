@@ -1,9 +1,8 @@
 {
   "desc": "The baseline model of GoEmotions, using the original labels",
   "task": "goemotions",
-  "data_dir": "data/original",
-  "ckpt_dir": "results",
-  "output_dir": "bert-base-cased-goemotions-original-model",
+  "data_dir": "data/bert-base-cased-goemotions-original-model",
+  "output_dir": "results/bert-base-cased-goemotions-original-model",
   "train_file": "train.tsv",
   "dev_file": "dev.tsv",
   "test_file": "test.tsv",

@@ -2,6 +2,8 @@ import os
 import random
 import logging
 
+from torch.utils.tensorboard import SummaryWriter
+
 import torch
 import numpy as np
 
@@ -12,6 +14,15 @@ def init_logger():
     logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                         datefmt='%m/%d/%Y %H:%M:%S',
                         level=logging.INFO)
+
+
+def init_tensorboard_writer(path: str):
+    """
+        returns a tensorboard-'writer', will save the summary into the relative 'path'
+    """
+
+    tb_writer = SummaryWriter(path)
+    return tb_writer
 
 
 def set_seed(args):
