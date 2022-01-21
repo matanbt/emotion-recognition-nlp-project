@@ -11,3 +11,6 @@ Here we'll agree on conventions and inserts useful snippets.
 - We use `torch.utils.tensorboard` well documented here: https://pytorch.org/docs/stable/tensorboard.html.
 - TensorBoard summaries wil be saved in `results/name_of_model_we_trained/tb_summary` for each model.
 - running `tensorboard` command from the `results` dir, will provide web-UI  visualizing all the results.
+
+## SSH :
+- `ssh <username>@c-001.cs.tau.ac.il`
