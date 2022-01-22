@@ -27,7 +27,7 @@ def get_labels_list(args=None):
     """
     # Get cached labels-list if exists
     global go_emotions_cached_labels_list
-    if go_emotions_cached_labels_list:
+    if go_emotions_cached_labels_list is not None:
         return go_emotions_cached_labels_list
 
     assert args is not None, "Initial call for get_labels_list() must be with parameter 'args'"
@@ -37,4 +37,5 @@ def get_labels_list(args=None):
     with open(os.path.join(args.data_dir, args.label_file), "r", encoding="utf-8") as f:
         for line in f:
             labels.append(line.rstrip())
+    go_emotions_cached_labels_list = labels.copy()
     return labels
