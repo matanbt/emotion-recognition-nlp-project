@@ -1,5 +1,5 @@
 import datasets
-from src import data_utils
+import data_utils
 from datasets.dataset_dict import DatasetDict
 
 # ---------------------------------------------------------------------

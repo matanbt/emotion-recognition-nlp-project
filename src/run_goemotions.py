@@ -17,7 +17,7 @@ from transformers import (
     get_linear_schedule_with_warmup
 )
 
-from src import data_utils
+import data_utils
 from model_baseline import BertForMultiLabelClassification
 from utils import (
     init_logger,
