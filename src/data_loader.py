@@ -2,6 +2,7 @@ import os
 
 import datasets
 import pandas as pd
+import torch
 from datasets.dataset_dict import DatasetDict
 
 # ---------------------------------------------------------------------
@@ -107,20 +108,22 @@ class GoEmotionsProcessor(BaseProcessor):
         """ adds VAD mappings to processed dataset """
         self.processed_dataset = self._add_vad_mapping(self.processed_dataset)
 
-    def _cast_to_tensors(self,
-                         features_to_tensor=
-                                ('input_ids', 'attention_mask', 'token_type_ids',
-                                 'one_hot_labels', 'vad')
-                         ):
+    def _cast_to_tensors(self):
         """
         Prepares dataset for Torch integration, by casting all the features to tensors *in* args.device
         """
-        if not self.with_vad:
-            features_to_tensor = list(set(features_to_tensor) - {'vad'})
+        features_to_tensor_long = ['input_ids', 'attention_mask', 'token_type_ids', 'one_hot_labels']
 
         self.processed_dataset.set_format(type='torch',
-                                          columns=features_to_tensor,
+                                          columns=features_to_tensor_long,
+                                          dtype=torch.long,
                                           device=self.args.device)
+
+        if self.with_vad:
+            self.processed_dataset.set_format(type='torch',
+                                              columns=['vad'],
+                                              dtype=torch.float,
+                                              device=self.args.device)
 
     # --- Data PreProcessing ---
 
@@ -138,7 +141,7 @@ class GoEmotionsProcessor(BaseProcessor):
     def get_hf_dataset(self) -> DatasetDict:
         return self.processed_dataset
 
-    def get_pandas(self) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    def get_pandas(self):
         """ casts the processed dataset to 3 pandas data-frames - train, dev, test """
         train, dev, test = self.processed_dataset["train"].to_pandas(), \
                            self.processed_dataset["validation"].to_pandas(), \
