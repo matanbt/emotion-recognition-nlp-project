@@ -17,6 +17,7 @@ from transformers import (
     get_linear_schedule_with_warmup
 )
 
+from src import data_utils
 from model_baseline import BertForMultiLabelClassification
 from utils import (
     init_logger,
@@ -234,7 +235,7 @@ def main(cli_args):
 
     set_seed(args)
 
-    label_list = GoEmotionsProcessor.fetch_labels_list(args)
+    label_list = data_utils.get_labels_list(args)
 
     config = BertConfig.from_pretrained(
         args.model_name_or_path,
