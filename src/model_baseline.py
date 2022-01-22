@@ -39,7 +39,7 @@ class BertForMultiLabelClassification(BertPreTrainedModel):
         pooled_output = self.dropout(pooled_output)
         logits = self.classifier(pooled_output)
 
-        outputs = (logits,) + outputs[2:]  # add hidden states and attention if they are here
+        outputs = (logits,) + outputs[2:]  # adds hidden states and attention if they are here
 
         if one_hot_labels is not None:
             loss = self.loss_fct(logits, one_hot_labels)

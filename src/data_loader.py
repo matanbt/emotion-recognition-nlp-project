@@ -97,7 +97,8 @@ class GoEmotionsProcessor(BaseProcessor):
         def one_hot_label_batch(examples):
             examples['one_hot_labels'] = []
             for emotions_indices in examples['labels']:  # TODO (?) can be done without a loop with numpy vectorization
-                one_hot_label = [int(i in emotions_indices) for i in
+                # Note: each element in the one_hot_vector must be 'float', for Torch loss calculation
+                one_hot_label = [float(i in emotions_indices) for i in
                                  range(len(self.labels_list))]
                 examples['one_hot_labels'].append(one_hot_label)
             return examples
@@ -112,19 +113,13 @@ class GoEmotionsProcessor(BaseProcessor):
         """
         Prepares dataset for Torch integration, by casting all the features to tensors *in* args.device
         """
-        features_to_tensor_long = ['input_ids', 'attention_mask', 'token_type_ids', 'one_hot_labels']
-        features_to_tensor_float = ['one_hot_labels']
-        if self.with_vad: features_to_tensor_float += ['vad']
+        features_to_tensor = ['input_ids', 'attention_mask', 'token_type_ids', 'one_hot_labels']
+        if self.with_vad: features_to_tensor += ['vad']
 
         self.processed_dataset.set_format(type='torch',
-                                          columns=features_to_tensor_long,
-                                          dtype=torch.long,
+                                          columns=features_to_tensor,
                                           device=self.args.device)
 
-        self.processed_dataset.set_format(type='torch',
-                                          columns=features_to_tensor_float,
-                                          dtype=torch.float,
-                                          device=self.args.device)
 
     # --- Data PreProcessing ---
 
