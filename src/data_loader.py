@@ -113,17 +113,18 @@ class GoEmotionsProcessor(BaseProcessor):
         Prepares dataset for Torch integration, by casting all the features to tensors *in* args.device
         """
         features_to_tensor_long = ['input_ids', 'attention_mask', 'token_type_ids', 'one_hot_labels']
+        features_to_tensor_float = ['one_hot_labels']
+        if self.with_vad: features_to_tensor_float += ['vad']
 
         self.processed_dataset.set_format(type='torch',
                                           columns=features_to_tensor_long,
                                           dtype=torch.long,
                                           device=self.args.device)
 
-        if self.with_vad:
-            self.processed_dataset.set_format(type='torch',
-                                              columns=['vad'],
-                                              dtype=torch.float,
-                                              device=self.args.device)
+        self.processed_dataset.set_format(type='torch',
+                                          columns=features_to_tensor_float,
+                                          dtype=torch.float,
+                                          device=self.args.device)
 
     # --- Data PreProcessing ---
 
