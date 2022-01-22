@@ -1,7 +1,7 @@
 #! /bin/sh
-#SBATCH --job-name=job-fine-tune-GE
-#SBATCH --output=job-fine-tune-GE.out
-#SBATCH --error=job-fine-tune-GE.err
+#SBATCH --job-name=job-fine-tune-ge
+#SBATCH --output=results/job-fine-tune-ge.out
+#SBATCH --error=results/job-fine-tune-ge.err
 #SBATCH --partition=studentbatch
 #SBATCH --time=300
 #SBATCH --nodes=1
