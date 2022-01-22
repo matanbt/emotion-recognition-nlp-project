@@ -1,186 +1,209 @@
 import os
-import copy
-import json
-import logging
 
-import torch
-from torch.utils.data import TensorDataset
+import datasets
+import pandas as pd
+from datasets.dataset_dict import DatasetDict
 
-logger = logging.getLogger(__name__)
+# ---------------------------------------------------------------------
+class VADMapper:
+    """
+        Class for controlling the VAD mappings
+    """
 
+    # TODO
+    # an instance will be provided to GoEmotionsProcessor.__init__().
+    # this class will implement: map_go_emotions_labels() for the use of GoEmotionsProcessor
 
-class InputExample(object):
-    """ A single training/test example for simple sequence classification. """
+    def __init__(self):
+        pass
 
-    def __init__(self, guid, text_a, text_b, label):
-        self.guid = guid
-        self.text_a = text_a
-        self.text_b = text_b
-        self.label = label
-
-    def __repr__(self):
-        return str(self.to_json_string())
-
-    def to_dict(self):
-        """Serializes this instance to a Python dictionary."""
-        output = copy.deepcopy(self.__dict__)
-        return output
-
-    def to_json_string(self):
-        """Serializes this instance to a JSON string."""
-        return json.dumps(self.to_dict(), indent=2, sort_keys=True) + "\n"
+    def map_go_emotions_labels(self, labels):
+        pass
 
 
-class InputFeatures(object):
-    """A single set of features of data."""
+# ---------------------------------------------------------------------
+class BaseProcessor:
+    """
+        each dataset-processor should extend this class.
+    """
 
-    def __init__(self, input_ids, attention_mask, token_type_ids, label):
-        self.input_ids = input_ids
-        self.attention_mask = attention_mask
-        self.token_type_ids = token_type_ids
-        self.label = label
+    def perform_full_preprocess(self):
+        """
+            triggers the full preprocessing of the dataset.
+            MUST be overridden by the processor class.
+        """
+        print("WARNING: method perform_full_preprocess() was NOT overridden by dataset-processor.")
 
-    def __repr__(self):
-        return str(self.to_json_string())
-
-    def to_dict(self):
-        """Serializes this instance to a Python dictionary."""
-        output = copy.deepcopy(self.__dict__)
-        return output
-
-    def to_json_string(self):
-        """Serializes this instance to a JSON string."""
-        return json.dumps(self.to_dict(), indent=2, sort_keys=True) + "\n"
-
-
-def convert_examples_to_features(
-        args,
-        examples,
-        tokenizer,
-        max_length,
-):
-    processor = GoEmotionsProcessor(args)
-    label_list_len = len(processor.get_labels())
-
-    def convert_to_one_hot_label(label):
-        one_hot_label = [0] * label_list_len
-        for l in label:
-            one_hot_label[l] = 1
-        return one_hot_label
-
-    labels = [convert_to_one_hot_label(example.label) for example in examples]
-
-    batch_encoding = tokenizer.batch_encode_plus(
-        [(example.text_a, example.text_b) for example in examples], max_length=max_length, pad_to_max_length=True
-    )
-
-    features = []
-    for i in range(len(examples)):
-        inputs = {k: batch_encoding[k][i] for k in batch_encoding}
-
-        feature = InputFeatures(**inputs, label=labels[i])
-        features.append(feature)
-
-    for i, example in enumerate(examples[:10]):
-        logger.info("*** Example ***")
-        logger.info("guid: {}".format(example.guid))
-        logger.info("sentence: {}".format(example.text_a))
-        logger.info("tokens: {}".format(" ".join([str(x) for x in tokenizer.tokenize(example.text_a)])))
-        logger.info("input_ids: {}".format(" ".join([str(x) for x in features[i].input_ids])))
-        logger.info("attention_mask: {}".format(" ".join([str(x) for x in features[i].attention_mask])))
-        logger.info("token_type_ids: {}".format(" ".join([str(x) for x in features[i].token_type_ids])))
-        logger.info("label: {}".format(" ".join([str(x) for x in features[i].label])))
-
-    return features
+    def get_dataset_by_mode(self, mode):
+        """
+            will return the 'mode' part of the dataset, ready to be used by Torch.
+            MUST be overridden by the processor class.
+        """
+        print("WARNING: method get_dataset_by_mode() was NOT overridden by dataset-processor.")
 
 
-class GoEmotionsProcessor(object):
-    """Processor for the GoEmotions data set """
+# ---------------------------------------------------------------------
+go_emotions_cached_labels_list = None
 
-    def __init__(self, args):
+# TODO add logs for data processing
+class GoEmotionsProcessor(BaseProcessor):
+    """
+    fetcher and preprocessor for the GoEmotion dataset,
+    - This class wraps GoEmotion *processed* dataset.
+    - based on hugging-face dataset object.
+    """
+
+    def __init__(self,
+                 args,
+                 tokenizer,
+                 max_length: int,
+                 vad_mapper: VADMapper = None):
+        """
+            args - full config
+            tokenizer - hugging-face pretrained tokenizer instance
+            max_length - the max_length we want our sentences to be
+            vad_mapper - instance of VADMapper, with method map_go_emotions_labels().
+                         if VADMapper is not initiated (=None), no VAD will be presented.
+        """
         self.args = args
+        self.tokenizer = tokenizer
+        self.max_length = max_length
+        self.vad_mapper = vad_mapper
+        self.with_vad = vad_mapper is not None
 
-    def get_labels(self):
+        # Fetches labels list
+        self.labels_list = self.fetch_labels_list(self.args)
+
+        # Fetch raw dataset, with columns: ['id', 'text', 'labels']
+        # 'self.raw_dataset' remains *untouched* in this class.
+        self.raw_dataset: DatasetDict = self._get_raw_dataset()
+
+        # Will hold the processed data (data with encodings, special labels, etc)
+        self.processed_dataset: DatasetDict = self.raw_dataset
+
+    # --- Data to Features ---
+
+    def _add_token_features(self):
+        """ Add to 'processed_dataset' the columns: ['attention_mask', 'input_ids', 'token_type_ids'] """
+        self.processed_dataset = self._add_tokenization_mapping(self.processed_dataset,
+                                                                self.tokenizer, self.max_length)
+
+    def _add_one_hot_labels(self):
+        """ Add to 'processed_dataset' the columns: ['one_hot_labels']
+            based on the indices in column 'labels' """
+
+        # converts labels to one-hot
+        def one_hot_label_batch(examples):
+            examples['one_hot_labels'] = []
+            for emotions_indices in examples['labels']:  # TODO (?) can be done without a loop with numpy vectorization
+                one_hot_label = [int(i in emotions_indices) for i in
+                                 range(len(self.labels_list))]
+                examples['one_hot_labels'].append(one_hot_label)
+            return examples
+
+        self.processed_dataset = self.processed_dataset.map(one_hot_label_batch, batched=True)
+
+    def _add_vad_features(self):
+        """ adds VAD mappings to processed dataset """
+        self.processed_dataset = self._add_vad_mapping(self.processed_dataset)
+
+    def _cast_to_tensors(self,
+                         features_to_tensor=
+                                ('input_ids', 'attention_mask', 'token_type_ids',
+                                 'one_hot_labels', 'vad')
+                         ):
+        """
+        Prepares dataset for Torch integration, by casting all the features to tensors *in* args.device
+        """
+        if not self.with_vad:
+            features_to_tensor = list(set(features_to_tensor) - {'vad'})
+
+        self.processed_dataset.set_format(type='torch',
+                                          columns=features_to_tensor,
+                                          device=self.args.device)
+
+    # --- Data PreProcessing ---
+
+    def perform_full_preprocess(self):
+        """ Performs full preprocessing, preparing dataset for training with Torch"""
+        # TODO - consider caching + flagging to prevent this function from being called twice
+        self._add_one_hot_labels()
+        self._add_token_features()
+        if self.with_vad:
+            self._add_vad_features()
+        self._cast_to_tensors()
+
+    # --- Dataset Getters --
+
+    def get_hf_dataset(self) -> DatasetDict:
+        return self.processed_dataset
+
+    def get_pandas(self) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+        """ casts the processed dataset to 3 pandas data-frames - train, dev, test """
+        train, dev, test = self.processed_dataset["train"].to_pandas(), \
+                           self.processed_dataset["validation"].to_pandas(), \
+                           self.processed_dataset["test"].to_pandas()
+        return train, dev, test
+
+    def get_dataset_by_mode(self, mode) -> datasets.arrow_dataset.Dataset:
+        """
+            returns the data part by chosen 'mode', could be from ['train', 'dev', 'test'].
+            the datasets returned can be used by Torch
+        """
+        assert mode in ['train', 'dev', 'test']
+        mode2split = {'train': 'train', 'dev': 'validation', 'test': 'test'}
+        return self.processed_dataset[mode2split[mode]]
+
+    # --- Utils static-methods: for data processing (TODO move to data-utils?) ---
+
+    @staticmethod
+    def fetch_labels_list(args):
+        global go_emotions_cached_labels_list
+        if go_emotions_cached_labels_list:
+            return go_emotions_cached_labels_list
+
         labels = []
-        with open(os.path.join(self.args.data_dir, self.args.label_file), "r", encoding="utf-8") as f:
+        with open(os.path.join(args.data_dir, args.label_file), "r", encoding="utf-8") as f:
             for line in f:
                 labels.append(line.rstrip())
         return labels
 
-    @classmethod
-    def _read_file(cls, input_file):
-        """Reads a tab separated value file."""
-        with open(input_file, "r", encoding="utf-8") as f:
-            return f.readlines()
+    @staticmethod
+    def _get_raw_dataset() -> DatasetDict:
+        """ returns the raw go-emotions dataset, as an hugging-face's dataset """
+        go_emotions = datasets.load_dataset("go_emotions", "simplified")
+        # TODO this can also be done, if we want, by fetching offline from files
+        #  (i.e. defining _get_raw_dataset_offline())
+        return go_emotions
 
-    def _create_examples(self, lines, set_type):
-        """ Creates examples for the train, dev and test sets."""
-        examples = []
-        for (i, line) in enumerate(lines):
-            guid = "%s-%s" % (set_type, i)
-            line = line.strip()
-            items = line.split("\t")
-            text_a = items[0]
-            label = list(map(int, items[1].split(",")))
-            if i % 5000 == 0:
-                logger.info(line)
-            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
-        return examples
+    @staticmethod
+    def _add_tokenization_mapping(dataset: DatasetDict, tokenizer, max_length) -> DatasetDict:
+        """ returns new dataset, with tokenization features, based on the 'text' column """
 
-    def get_examples(self, mode):
-        """
-        Args:
-            mode: train, dev, test
-        """
-        file_to_read = None
-        if mode == 'train':
-            file_to_read = self.args.train_file
-        elif mode == 'dev':
-            file_to_read = self.args.dev_file
-        elif mode == 'test':
-            file_to_read = self.args.test_file
+        def tokenize_batch(examples):
+            return tokenizer(examples["text"], max_length=max_length,
+                             padding='max_length')
 
-        logger.info("LOOKING AT {}".format(os.path.join(self.args.data_dir, file_to_read)))
-        return self._create_examples(self._read_file(os.path.join(self.args.data_dir,
-                                                                  file_to_read)), mode)
+        return dataset.map(tokenize_batch, batched=True)  # map() is not in-place
 
+    @staticmethod
+    def _add_vad_mapping(dataset: DatasetDict) -> DatasetDict:
+        """ returns new dataset, with 'vad' column, based on 'labels' """
 
-def load_and_cache_examples(args, tokenizer, mode):
-    processor = GoEmotionsProcessor(args)
-    # Load data features from cache or dataset file
-    cached_features_file = os.path.join(
-        args.data_dir,
-        "cached_{}_{}_{}_{}".format(
-            str(args.task),
-            list(filter(None, args.model_name_or_path.split("/"))).pop(),
-            str(args.max_seq_len),
-            mode
-        )
-    )
-    if os.path.exists(cached_features_file):
-        logger.info("Loading features from cached file %s", cached_features_file)
-        features = torch.load(cached_features_file)
-    else:
-        logger.info("Creating features from dataset file at %s", args.data_dir)
-        if mode == "train":
-            examples = processor.get_examples("train")
-        elif mode == "dev":
-            examples = processor.get_examples("dev")
-        elif mode == "test":
-            examples = processor.get_examples("test")
-        else:
-            raise ValueError("For mode, only train, dev, test is available")
-        features = convert_examples_to_features(
-            args, examples, tokenizer, max_length=args.max_seq_len
-        )
-        logger.info("Saving features into cached file %s", cached_features_file)
-        torch.save(features, cached_features_file)
+        def vad_mapping_batch(examples):
+            examples['vad'] = []
+            for emotions_indices in examples['labels']:  # TODO (?) can be done without a loop with numpy vectorization
+                # Todo - call VADMapper API with `example['labels']`
+                examples['vad'].append([1, 2, 3])
+            return examples
 
-    # Convert to Tensors and build dataset
-    all_input_ids = torch.tensor([f.input_ids for f in features], dtype=torch.long)
-    all_attention_mask = torch.tensor([f.attention_mask for f in features], dtype=torch.long)
-    all_token_type_ids = torch.tensor([f.token_type_ids for f in features], dtype=torch.long)
-    all_labels = torch.tensor([f.label for f in features], dtype=torch.float)
+        return dataset.map(vad_mapping_batch, batched=True)
 
-    dataset = TensorDataset(all_input_ids, all_attention_mask, all_token_type_ids, all_labels)
-    return dataset
+# ---------------------------------------------------------------------
+# TODO provide support for processing datasets such as fb-valence-arousal, emobank
+class EmoBankProcessor(BaseProcessor):
+    pass
+
+# ---------------------------------------------------------------------
+class FacebookVAProcessor(BaseProcessor):
+    pass

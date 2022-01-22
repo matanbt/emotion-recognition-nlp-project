@@ -17,7 +17,7 @@ from transformers import (
     get_linear_schedule_with_warmup
 )
 
-from model import BertForMultiLabelClassification
+from model_baseline import BertForMultiLabelClassification
 from utils import (
     init_logger,
     init_tensorboard_writer,
@@ -25,7 +25,6 @@ from utils import (
     compute_metrics
 )
 from data_loader import (
-    load_and_cache_examples,
     GoEmotionsProcessor
 )
 
@@ -34,7 +33,7 @@ tb_writer = None  # initialized in main()
 
 
 def train(args,
-          model,
+          model: torch.nn.Module,
           tokenizer,
           train_dataset,
           dev_dataset=None,
@@ -83,20 +82,13 @@ def train(args,
     global_step = 0
     tr_loss = 0.0
 
-    model.zero_grad()
+    model.zero_grad() # TODO init the grads in an interesting way?
     train_iterator = trange(int(args.num_train_epochs), desc="Epoch")
     for _ in train_iterator:
         epoch_iterator = tqdm(train_dataloader, desc="Iteration")
         for step, batch in enumerate(epoch_iterator):
             model.train()
-            batch = tuple(t.to(args.device) for t in batch)
-            inputs = {
-                "input_ids": batch[0],
-                "attention_mask": batch[1],
-                "token_type_ids": batch[2],
-                "labels": batch[3]
-            }
-            outputs = model(**inputs)
+            outputs = model(**batch)
 
             loss = outputs[0]
 
@@ -244,13 +236,12 @@ def main(cli_args):
     # args.output_dir = ... # TODO add time-stamp to path
 
     init_logger()
-    global tb_writer  # we define the TensorBoard summary-writer to be used across the file
+    global tb_writer  # we define the TensorBoard-summary-writer to be used across this file
     tb_writer = init_tensorboard_writer(os.path.join(args.output_dir, "tb_summary"))
 
     set_seed(args)
 
-    processor = GoEmotionsProcessor(args)
-    label_list = processor.get_labels()
+    label_list = GoEmotionsProcessor.fetch_labels_list(args)
 
     config = BertConfig.from_pretrained(
         args.model_name_or_path,
@@ -259,7 +250,7 @@ def main(cli_args):
         id2label={str(i): label for i, label in enumerate(label_list)},
         label2id={label: i for i, label in enumerate(label_list)}
     )
-    tokenizer = BertTokenizer.from_pretrained(
+    tokenizer = BertTokenizer.from_pretrained( #TODO  why do we use a custom tokenizer??
         args.tokenizer_name_or_path,
     )
     model = BertForMultiLabelClassification.from_pretrained(
@@ -271,17 +262,21 @@ def main(cli_args):
     args.device = "cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu"
     model.to(args.device)
 
+    # Process Data
+    processor = GoEmotionsProcessor(args, tokenizer, args.max_seq_len)
+    processor.perform_full_preprocess()
+
     # Load dataset
-    train_dataset = load_and_cache_examples(args, tokenizer, mode="train") if args.train_file else None
-    dev_dataset = load_and_cache_examples(args, tokenizer, mode="dev") if args.dev_file else None
-    test_dataset = load_and_cache_examples(args, tokenizer, mode="test") if args.test_file else None
+    train_dataset = processor.get_dataset_by_mode('train')
+    dev_dataset = processor.get_dataset_by_mode('dev')
+    test_dataset = processor.get_dataset_by_mode('test')
 
     if dev_dataset is None:
         args.evaluate_test_during_training = True  # If there is no dev dataset, only use test dataset
 
     if args.do_train:
         global_step, tr_loss = train(args, model, tokenizer, train_dataset, dev_dataset, test_dataset)
-        logger.info(" global_step = {}, average loss = {}".format(global_step, tr_loss))
+        logger.info("Training Sum: global_step = {}, average loss = {}".format(global_step, tr_loss))
 
     results = {}
     if args.do_eval:
@@ -305,6 +300,7 @@ def main(cli_args):
         logger.info("Evaluate the following checkpoints: %s", checkpoints)
 
         output_eval_file = os.path.join(args.output_dir, "eval_results.txt")
+        # TODO: log this evaluations to TensorBoard as well
         with open(output_eval_file, "w") as f_w:
             for key in sorted(results.keys()):
                 f_w.write("{} = {}\n".format(key, str(results[key])))

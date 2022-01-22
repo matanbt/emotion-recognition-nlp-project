@@ -22,7 +22,9 @@ class BertForMultiLabelClassification(BertPreTrainedModel):
             position_ids=None,
             head_mask=None,
             inputs_embeds=None,
+            one_hot_labels=None,
             labels=None,
+            **kwargs
     ):
         outputs = self.bert(
             input_ids,
@@ -39,8 +41,8 @@ class BertForMultiLabelClassification(BertPreTrainedModel):
 
         outputs = (logits,) + outputs[2:]  # add hidden states and attention if they are here
 
-        if labels is not None:
-            loss = self.loss_fct(logits, labels)
+        if one_hot_labels is not None:
+            loss = self.loss_fct(logits, one_hot_labels)
             outputs = (loss,) + outputs
 
         return outputs  # (loss), logits, (hidden_states), (attentions)
