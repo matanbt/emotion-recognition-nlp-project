@@ -181,7 +181,7 @@ class GoEmotionsProcessor(BaseProcessor):
 
         def tokenize_batch(examples):
             return tokenizer(examples["text"], max_length=max_length,
-                             padding='max_length')
+                             padding='max_length', truncation=True)
 
         return dataset.map(tokenize_batch, batched=True)  # map() is not in-place
 

@@ -176,26 +176,19 @@ def evaluate(args, model, eval_dataset, mode, global_step=None):
 
     for batch in tqdm(eval_dataloader, desc="Evaluating"):
         model.eval()
-        batch = tuple(t.to(args.device) for t in batch)
 
         with torch.no_grad():
-            inputs = {
-                "input_ids": batch[0],
-                "attention_mask": batch[1],
-                "token_type_ids": batch[2],
-                "labels": batch[3]
-            }
-            outputs = model(**inputs)
+            outputs = model(**batch)
             tmp_eval_loss, logits = outputs[:2]
 
             eval_loss += tmp_eval_loss.mean().item()
         nb_eval_steps += 1
         if preds is None:
             preds = 1 / (1 + np.exp(-logits.detach().cpu().numpy()))  # Sigmoid
-            out_label_ids = inputs["labels"].detach().cpu().numpy()
+            out_label_ids = batch["labels"].detach().cpu().numpy()
         else:
             preds = np.append(preds, 1 / (1 + np.exp(-logits.detach().cpu().numpy())), axis=0)  # Sigmoid
-            out_label_ids = np.append(out_label_ids, inputs["labels"].detach().cpu().numpy(), axis=0)
+            out_label_ids = np.append(out_label_ids, batch["labels"].detach().cpu().numpy(), axis=0)
 
     eval_loss = eval_loss / nb_eval_steps
     results = {
