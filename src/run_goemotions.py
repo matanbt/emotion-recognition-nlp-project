@@ -185,10 +185,10 @@ def evaluate(args, model, eval_dataset, mode, global_step=None):
         nb_eval_steps += 1
         if preds is None:
             preds = 1 / (1 + np.exp(-logits.detach().cpu().numpy()))  # Sigmoid
-            out_label_ids = batch["labels"].detach().cpu().numpy()
+            out_label_ids = batch["one_hot_labels"].detach().cpu().numpy()
         else:
             preds = np.append(preds, 1 / (1 + np.exp(-logits.detach().cpu().numpy())), axis=0)  # Sigmoid
-            out_label_ids = np.append(out_label_ids, batch["labels"].detach().cpu().numpy(), axis=0)
+            out_label_ids = np.append(out_label_ids, batch["one_hot_labels"].detach().cpu().numpy(), axis=0)
 
     eval_loss = eval_loss / nb_eval_steps
     results = {
