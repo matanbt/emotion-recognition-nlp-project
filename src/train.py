@@ -1,43 +1,24 @@
-import argparse
-import json
-import logging
 import os
-import glob
 
-import numpy as np
 import torch
-from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
+from torch.utils.data import DataLoader, RandomSampler
 from tqdm import tqdm, trange
-from attrdict import AttrDict
 
 from transformers import (
-    BertConfig,
-    BertTokenizer,
     AdamW,
     get_linear_schedule_with_warmup
 )
 
-import data_utils
-from model_baseline import BertForMultiLabelClassification
-from utils import (
-    init_logger,
-    init_tensorboard_writer,
-    set_seed,
-    compute_metrics
-)
-from data_loader import (
-    GoEmotionsProcessor
-)
-
-logger = logging.getLogger(__name__)
-tb_writer = None  # initialized in main()
-
+from evaluate import evaluate
 
 def train(args,
           model: torch.nn.Module,
           tokenizer,
           train_dataset,
-          evaluate_func,
+          compute_metrics,
+          func_on_model_output,
+          logger,
+          tb_writer,
           dev_dataset=None,
           test_dataset=None,):
     logger.info("***** Preparing Training *****")
@@ -84,7 +65,7 @@ def train(args,
     global_step = 0
     tr_loss = 0.0
 
-    model.zero_grad() # TODO init the grads in an interesting way?
+    model.zero_grad()  # TODO init the grads in an interesting way?
     train_iterator = trange(int(args.num_train_epochs), desc="Epoch")
     for _ in train_iterator:
         epoch_iterator = tqdm(train_dataloader, desc="Iteration")
@@ -112,12 +93,12 @@ def train(args,
 
                 if args.logging_steps > 0 and global_step % args.logging_steps == 0:
                     if args.evaluate_test_during_training:
-                        evaluate_func(args, model, test_dataset, "test", global_step)
+                        evaluate(args, model, test_dataset, "test", logger, tb_writer, compute_metrics, func_on_model_output, global_step)
                     else:
-                        evaluate_func(args, model, dev_dataset, "dev", global_step)
+                        evaluate(args, model, dev_dataset, "dev", logger, tb_writer, compute_metrics, func_on_model_output, global_step)
 
                 if args.save_steps > 0 and global_step % args.save_steps == 0:
-                    save_model_checkpoint(args, model, tokenizer, global_step, optimizer, scheduler)
+                    save_model_checkpoint(args, model, tokenizer, global_step, optimizer, scheduler, logger)
 
             if args.max_steps > 0 and global_step > args.max_steps:
                 break
@@ -127,7 +108,7 @@ def train(args,
 
     # Saves the final state of the model
     logger.info("Saving model final checkpoint...")
-    save_model_checkpoint(args, model, tokenizer, global_step, optimizer, scheduler)
+    save_model_checkpoint(args, model, tokenizer, global_step, optimizer, scheduler, logger)
 
     logger.info("***** Finished Training *****")
 
@@ -136,7 +117,7 @@ def train(args,
 def save_model_checkpoint(args,
                           model, tokenizer,
                           global_step,
-                          optimizer, scheduler):
+                          optimizer, scheduler, logger):
     """
         Saves the current model in a checkpoint dir
     """

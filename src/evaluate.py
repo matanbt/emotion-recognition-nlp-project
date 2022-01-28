@@ -1,37 +1,16 @@
-import argparse
-import json
-import logging
 import os
-import glob
 
 import numpy as np
 import torch
-from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
-from tqdm import tqdm, trange
-from attrdict import AttrDict
+from torch.utils.data import DataLoader, SequentialSampler
+from tqdm import tqdm
 
-from transformers import (
-    BertConfig,
-    BertTokenizer,
-    AdamW,
-    get_linear_schedule_with_warmup
-)
 
-import data_utils
-from model_baseline import BertForMultiLabelClassification
-from utils import (
-    init_logger,
-    init_tensorboard_writer,
-    set_seed,
-    compute_metrics_classification
-)
-from data_loader import (
-    GoEmotionsProcessor
-)
+def evaluate(args, model, eval_dataset, mode, logger, tb_writer, compute_metrics, function_on_model_output=lambda x: x, global_step=None):
+    """"
+        function_on_model_output - function to apply on the output of the model
 
-from train import train
-
-def evaluate(args, model, eval_dataset, mode, logger, tb_writer, compute_metrics, global_step=None):
+    """
     results = {}
     eval_sampler = SequentialSampler(eval_dataset)
     eval_dataloader = DataLoader(eval_dataset, sampler=eval_sampler, batch_size=args.eval_batch_size)
@@ -46,7 +25,7 @@ def evaluate(args, model, eval_dataset, mode, logger, tb_writer, compute_metrics
     eval_loss = 0.0
     nb_eval_steps = 0
     preds = None
-    out_label_ids = None
+    targets = None
 
     for batch in tqdm(eval_dataloader, desc="Evaluating"):
         model.eval()
@@ -58,11 +37,12 @@ def evaluate(args, model, eval_dataset, mode, logger, tb_writer, compute_metrics
             eval_loss += tmp_eval_loss.mean().item()
         nb_eval_steps += 1
         if preds is None:
-            preds = 1 / (1 + np.exp(-logits.detach().cpu().numpy()))  # Sigmoid
-            out_label_ids = batch["one_hot_labels"].detach().cpu().numpy()
+            preds = function_on_model_output(logits)
+            targets = batch["targets"].detach().cpu().numpy()  # TODO - why do we need detach here?
+            # TODO - (not here) change one_hot_labels to targets in the data, also add data loader in the regression case (with key "targets")
         else:
-            preds = np.append(preds, 1 / (1 + np.exp(-logits.detach().cpu().numpy())), axis=0)  # Sigmoid
-            out_label_ids = np.append(out_label_ids, batch["one_hot_labels"].detach().cpu().numpy(), axis=0)
+            preds = np.append(preds, function_on_model_output(logits), axis=0)
+            targets = np.append(targets, batch["targets"].detach().cpu().numpy(), axis=0)
 
     eval_loss = eval_loss / nb_eval_steps
     results = {
@@ -70,7 +50,7 @@ def evaluate(args, model, eval_dataset, mode, logger, tb_writer, compute_metrics
     }
     preds[preds > args.threshold] = 1
     preds[preds <= args.threshold] = 0
-    result = compute_metrics(out_label_ids, preds)
+    result = compute_metrics(targets, preds)
     results.update(result)
 
     output_dir = os.path.join(args.output_dir, mode)
