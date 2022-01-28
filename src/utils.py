@@ -8,7 +8,7 @@ import torch
 import numpy as np
 
 from sklearn.metrics import precision_recall_fscore_support, accuracy_score
-
+from sklearn.metrics import r2_score, mean_squared_error
 
 def init_logger():
     logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
@@ -33,7 +33,7 @@ def set_seed(args):
         torch.cuda.manual_seed_all(args.seed)
 
 
-def compute_metrics(labels, preds):
+def compute_metrics_classification(labels, preds):
     assert len(preds) == len(labels)
     results = dict()
 
@@ -49,3 +49,14 @@ def compute_metrics(labels, preds):
         labels, preds, average="weighted")
 
     return results
+
+def compute_metrics_regression(vads, preds):
+    # TODO
+    assert len(preds) == len(vads)
+    results = dict()
+
+    results["R_squared_score"] = r2_score(vads, preds)
+    results["mean_squared_error"] = mean_squared_error(vads, preds)
+
+    return results
+
