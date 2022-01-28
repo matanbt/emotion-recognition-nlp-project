@@ -40,6 +40,7 @@ from evaluate import evaluate
 
 MATRICS_FUNC = compute_metrics_regression
 IDENTITY_FUNC = lambda x: x
+TARGET_NAME = "vad_mapping"
 
 logger = logging.getLogger(__name__)
 tb_writer = None  # initialized in main()
@@ -92,7 +93,7 @@ def main(cli_args):
         args.evaluate_test_during_training = True  # If there is no dev dataset, only use test dataset
 
     if args.do_train:
-        global_step, tr_loss = train(args, model, tokenizer, train_dataset, MATRICS_FUNC, IDENTITY_FUNC, logger, tb_writer, dev_dataset, test_dataset)
+        global_step, tr_loss = train(args, model, tokenizer, train_dataset, MATRICS_FUNC, TARGET_NAME, IDENTITY_FUNC, logger, tb_writer, dev_dataset, test_dataset)
         logger.info("Training Sum: global_step = {}, average loss = {}".format(global_step, tr_loss))
 
     results = {}
@@ -110,7 +111,7 @@ def main(cli_args):
             global_step = checkpoint.split("-")[-1]
             model = BertForMultiDimensionRegression.from_pretrained(checkpoint)
             model.to(args.device)
-            result = evaluate(args, model, test_dataset, "test", logger, tb_writer, MATRICS_FUNC, IDENTITY_FUNC, global_step)
+            result = evaluate(args, model, test_dataset, "test", logger, tb_writer, MATRICS_FUNC, TARGET_NAME, IDENTITY_FUNC, global_step)
             result = dict((k + "_{}".format(global_step), v) for k, v in result.items())
             results.update(result)
 

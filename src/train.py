@@ -16,6 +16,7 @@ def train(args,
           tokenizer,
           train_dataset,
           compute_metrics,
+          target_name,
           func_on_model_output,
           logger,
           tb_writer,
@@ -93,9 +94,9 @@ def train(args,
 
                 if args.logging_steps > 0 and global_step % args.logging_steps == 0:
                     if args.evaluate_test_during_training:
-                        evaluate(args, model, test_dataset, "test", logger, tb_writer, compute_metrics, func_on_model_output, global_step)
+                        evaluate(args, model, test_dataset, "test", logger, tb_writer, compute_metrics, target_name, func_on_model_output, global_step)
                     else:
-                        evaluate(args, model, dev_dataset, "dev", logger, tb_writer, compute_metrics, func_on_model_output, global_step)
+                        evaluate(args, model, dev_dataset, "dev", logger, tb_writer, compute_metrics, target_name, func_on_model_output, global_step)
 
                 if args.save_steps > 0 and global_step % args.save_steps == 0:
                     save_model_checkpoint(args, model, tokenizer, global_step, optimizer, scheduler, logger)

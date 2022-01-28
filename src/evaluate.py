@@ -5,10 +5,10 @@ import torch
 from torch.utils.data import DataLoader, SequentialSampler
 from tqdm import tqdm
 
-
-def evaluate(args, model, eval_dataset, mode, logger, tb_writer, compute_metrics, function_on_model_output=lambda x: x, global_step=None):
+def evaluate(args, model, eval_dataset, mode, logger, tb_writer, compute_metrics, target_name, function_on_model_output=lambda x: x, global_step=None):
     """"
         function_on_model_output - function to apply on the output of the model
+        target_name - name of column contains the target for each input (e.g.: "one_hot_labels")
 
     """
     results = {}
@@ -38,11 +38,10 @@ def evaluate(args, model, eval_dataset, mode, logger, tb_writer, compute_metrics
         nb_eval_steps += 1
         if preds is None:
             preds = function_on_model_output(logits)
-            targets = batch["targets"].detach().cpu().numpy()  # TODO - why do we need detach here?
-            # TODO - (not here) change one_hot_labels to targets in the data, also add data loader in the regression case (with key "targets")
+            targets = batch[target_name].detach().cpu().numpy()  # TODO - why do we need detach here?
         else:
             preds = np.append(preds, function_on_model_output(logits), axis=0)
-            targets = np.append(targets, batch["targets"].detach().cpu().numpy(), axis=0)
+            targets = np.append(targets, batch[target_name].detach().cpu().numpy(), axis=0)
 
     eval_loss = eval_loss / nb_eval_steps
     results = {

@@ -37,6 +37,7 @@ tb_writer = None  # initialized in main()
 
 SIGMOID_FUNC = lambda x: 1 / (1 + np.exp(-x.detach().cpu().numpy()))
 MATRICS_FUNC = compute_metrics_classification
+TARGET_NAME = "one_hot_labels"
 
 # TODO delete (leaving it here for now as reference)
 # def evaluate_classification_model(args, model, eval_dataset, mode, global_step=None):
@@ -150,7 +151,7 @@ def main(cli_args):
         args.evaluate_test_during_training = True  # If there is no dev dataset, only use test dataset
 
     if args.do_train:
-        global_step, tr_loss = train(args, model, tokenizer, train_dataset, MATRICS_FUNC, SIGMOID_FUNC, logger, tb_writer, dev_dataset, test_dataset)
+        global_step, tr_loss = train(args, model, tokenizer, train_dataset, MATRICS_FUNC, TARGET_NAME, SIGMOID_FUNC, logger, tb_writer, dev_dataset, test_dataset)
         logger.info("Training Sum: global_step = {}, average loss = {}".format(global_step, tr_loss))
 
     results = {}
@@ -168,7 +169,7 @@ def main(cli_args):
             global_step = checkpoint.split("-")[-1]
             model = BertForMultiLabelClassification.from_pretrained(checkpoint)
             model.to(args.device)
-            result = evaluate(args, model, test_dataset, "test", logger, tb_writer, MATRICS_FUNC, SIGMOID_FUNC, global_step)
+            result = evaluate(args, model, test_dataset, "test", logger, tb_writer, MATRICS_FUNC, TARGET_NAME, SIGMOID_FUNC, global_step)
             result = dict((k + "_{}".format(global_step), v) for k, v in result.items())
             results.update(result)
 
