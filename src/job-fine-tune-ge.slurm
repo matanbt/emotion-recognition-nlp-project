@@ -8,4 +8,4 @@
 #SBATCH --ntasks=1
 #SBATCH --gpus=1
 
-python3 run_goemotions.py --taxonomy original
+python3 main.py --config original.json

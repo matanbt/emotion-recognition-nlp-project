@@ -43,7 +43,7 @@ def run(cli_args, data_processor_class, model_class):
     # args.output_dir = ... # TODO add time-stamp to path
 
     init_logger()
-    args.tb_writer= init_tensorboard_writer(os.path.join(args.output_dir, "tb_summary"))
+    tb_writer= init_tensorboard_writer(os.path.join(args.output_dir, "tb_summary"))
 
     set_seed(args)
 
@@ -73,10 +73,12 @@ def run(cli_args, data_processor_class, model_class):
     args.device = "cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu"
     model.to(args.device)
 
-    # Add more arguments
-    args.compute_metrics = MATRICS_FUNC
-    args.target_name = TARGET_NAME
-    args.func_on_model_output = SIGMOID_FUNC
+    # additional arguments (Note: do not put these in `args`)
+    model_utils = AttrDict()
+    model_utils.tb_writer = tb_writer
+    model_utils.compute_metrics = MATRICS_FUNC
+    model_utils.target_name = TARGET_NAME
+    model_utils.func_on_model_output = SIGMOID_FUNC
 
     # Process Data
     processor = data_processor_class(args, tokenizer, args.max_seq_len)
@@ -91,8 +93,8 @@ def run(cli_args, data_processor_class, model_class):
         args.evaluate_test_during_training = True  # If there is no dev dataset, only use test dataset
 
     if args.do_train:
-        global_step, tr_loss = train(args, model, tokenizer, train_dataset,
-                                     dev_dataset, test_dataset)
+        global_step, tr_loss = train(args, model, model_utils, tokenizer,
+                                     train_dataset,dev_dataset, test_dataset)
         logger.info("Training Sum: global_step = {}, average loss = {}".format(global_step, tr_loss))
 
     results = {}
@@ -110,7 +112,7 @@ def run(cli_args, data_processor_class, model_class):
             global_step = checkpoint.split("-")[-1]
             model = model_class.from_pretrained(checkpoint)
             model.to(args.device)
-            result = evaluate(args, model, test_dataset, "test", global_step)
+            result = evaluate(args, model, model_utils, test_dataset, "test", global_step)
             result = dict((k + "_{}".format(global_step), v) for k, v in result.items())
             results.update(result)
 
@@ -122,7 +124,7 @@ def run(cli_args, data_processor_class, model_class):
             for key in sorted(results.keys()):
                 f_w.write("{} = {}\n".format(key, str(results[key])))
 
-        args.tb_writer.close()
+        model_args.tb_writer.close()
 
         logger.info("***** Finished main() *****")
 

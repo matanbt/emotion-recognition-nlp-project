@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 def train(args,
           model: torch.nn.Module,
+          model_utils,
           tokenizer,
           train_dataset,
           dev_dataset=None,
@@ -91,9 +92,9 @@ def train(args,
 
                 if args.logging_steps > 0 and global_step % args.logging_steps == 0:
                     if args.evaluate_test_during_training:
-                        evaluate(args, model, test_dataset, "test", global_step)
+                        evaluate(args, model, model_utils, test_dataset, "test", global_step)
                     else:
-                        evaluate(args, model, dev_dataset, "dev", global_step)
+                        evaluate(args, model, model_utils, dev_dataset, "dev", global_step)
 
                 if args.save_steps > 0 and global_step % args.save_steps == 0:
                     save_model_checkpoint(args, model, tokenizer, global_step, optimizer, scheduler)
