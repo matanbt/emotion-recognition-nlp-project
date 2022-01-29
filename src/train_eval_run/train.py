@@ -1,4 +1,5 @@
 import os
+import logging
 
 import torch
 from torch.utils.data import DataLoader, RandomSampler
@@ -9,19 +10,16 @@ from transformers import (
     get_linear_schedule_with_warmup
 )
 
-from evaluate import evaluate
+from .evaluate import evaluate
+
+logger = logging.getLogger(__name__)
 
 def train(args,
           model: torch.nn.Module,
           tokenizer,
           train_dataset,
-          compute_metrics,
-          target_name,
-          func_on_model_output,
-          logger,
-          tb_writer,
           dev_dataset=None,
-          test_dataset=None,):
+          test_dataset=None):
     logger.info("***** Preparing Training *****")
 
     train_sampler = RandomSampler(train_dataset)
@@ -82,8 +80,7 @@ def train(args,
             loss.backward()
             tr_loss += loss.item()
             if (step + 1) % args.gradient_accumulation_steps == 0 or (
-                    len(train_dataloader) <= args.gradient_accumulation_steps
-                    and (step + 1) == len(train_dataloader)
+                    args.gradient_accumulation_steps >= len(train_dataloader) == (step + 1)
             ):
                 torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
 
@@ -94,22 +91,22 @@ def train(args,
 
                 if args.logging_steps > 0 and global_step % args.logging_steps == 0:
                     if args.evaluate_test_during_training:
-                        evaluate(args, model, test_dataset, "test", logger, tb_writer, compute_metrics, target_name, func_on_model_output, global_step)
+                        evaluate(args, model, test_dataset, "test", global_step)
                     else:
-                        evaluate(args, model, dev_dataset, "dev", logger, tb_writer, compute_metrics, target_name, func_on_model_output, global_step)
+                        evaluate(args, model, dev_dataset, "dev", global_step)
 
                 if args.save_steps > 0 and global_step % args.save_steps == 0:
-                    save_model_checkpoint(args, model, tokenizer, global_step, optimizer, scheduler, logger)
+                    save_model_checkpoint(args, model, tokenizer, global_step, optimizer, scheduler)
 
-            if args.max_steps > 0 and global_step > args.max_steps:
+            if 0 < args.max_steps < global_step:
                 break
 
-        if args.max_steps > 0 and global_step > args.max_steps:
+        if 0 < args.max_steps < global_step:
             break
 
     # Saves the final state of the model
     logger.info("Saving model final checkpoint...")
-    save_model_checkpoint(args, model, tokenizer, global_step, optimizer, scheduler, logger)
+    save_model_checkpoint(args, model, tokenizer, global_step, optimizer, scheduler)
 
     logger.info("***** Finished Training *****")
 
@@ -118,7 +115,7 @@ def train(args,
 def save_model_checkpoint(args,
                           model, tokenizer,
                           global_step,
-                          optimizer, scheduler, logger):
+                          optimizer, scheduler):
     """
         Saves the current model in a checkpoint dir
     """
