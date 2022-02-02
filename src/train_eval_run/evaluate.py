@@ -6,16 +6,13 @@ import torch
 from torch.utils.data import DataLoader, SequentialSampler
 from tqdm import tqdm
 
+from src.train_eval_run.ModelConfig import ModelConfig
 
 logger = logging.getLogger(__name__)
 
 
-def evaluate(args, model, model_utils, eval_dataset, mode, global_step=None):
-    """"
-        model_args.func_on_model_output - function to apply on the output of the model
-        model_args.target_name - name of column contains the target for each input (e.g.: "one_hot_labels")
+def evaluate(args, model, model_config: ModelConfig, eval_dataset, mode, global_step=None):
 
-    """
     results = {}
     eval_sampler = SequentialSampler(eval_dataset)
     eval_dataloader = DataLoader(eval_dataset, sampler=eval_sampler, batch_size=args.eval_batch_size)
@@ -42,11 +39,11 @@ def evaluate(args, model, model_utils, eval_dataset, mode, global_step=None):
             eval_loss += tmp_eval_loss.mean().item()
         nb_eval_steps += 1
         if preds is None:
-            preds = model_utils.func_on_model_output(logits)
-            targets = batch[model_utils.target_name].detach().cpu().numpy()  # TODO - why do we need detach here?
+            preds = model_config.func_on_model_output(logits)
+            targets = batch[model_config.target_name].detach().cpu().numpy()  # TODO - why do we need detach here?
         else:
-            preds = np.append(preds,  model_utils.func_on_model_output(logits), axis=0)
-            targets = np.append(targets, batch[model_utils.target_name].detach().cpu().numpy(), axis=0)
+            preds = np.append(preds,  model_config.func_on_model_output(logits), axis=0)
+            targets = np.append(targets, batch[model_config.target_name].detach().cpu().numpy(), axis=0)
 
     eval_loss = eval_loss / nb_eval_steps
     results = {
@@ -54,7 +51,7 @@ def evaluate(args, model, model_utils, eval_dataset, mode, global_step=None):
     }
     preds[preds > args.threshold] = 1
     preds[preds <= args.threshold] = 0
-    result = model_utils.compute_metrics(targets, preds)
+    result = model_config.compute_metrics(targets, preds)
     results.update(result)
 
     output_dir = os.path.join(args.output_dir, mode)
@@ -69,6 +66,6 @@ def evaluate(args, model, model_utils, eval_dataset, mode, global_step=None):
             f_w.write("  {} = {}\n".format(key, str(results[key])))
 
     # logs the results to TensorBoard
-    model_utils.tb_writer.add_scalars(mode, results, global_step=global_step)
+    model_config.tb_writer.add_scalars(mode, results, global_step=global_step)
 
     return results
