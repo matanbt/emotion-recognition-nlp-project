@@ -45,6 +45,7 @@ def run(args, data_processor_class, model_config: ModelConfig):
     )
     model = model_config.model_class.from_pretrained(
         args.model_name_or_path,
+        model_config.num_dim,
         config=config
     )
 
@@ -53,7 +54,7 @@ def run(args, data_processor_class, model_config: ModelConfig):
     model.to(args.device)
 
     # Process Data
-    processor = data_processor_class(args, tokenizer, args.max_seq_len)
+    processor = data_processor_class(args, tokenizer, args.max_seq_len, model_config.vad_mapper_name)
     processor.perform_full_preprocess()
 
     # Load dataset

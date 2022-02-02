@@ -1,25 +1,59 @@
 import datasets
+from datasets import Dataset
+
 from . import data_utils
 from datasets.dataset_dict import DatasetDict
 import logging
 
+from enum import Enum
+
+import pandas as pd
+
+NRC_VAD_LEXICON_PATH = "../data/mapping-emotions-to-vad/nrc-vad/NRC-VAD-Lexicon.txt"
+
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------
+
+
+class VADMapperName(Enum):
+    # Note: each VADMapperName should be handled in VADMapper.__init__
+    NRC = "Mapping based on NRC lexicon"
+
+
 class VADMapper:
     """
         Class for controlling the VAD mappings
     """
 
-    # TODO
-    # an instance will be provided to GoEmotionsProcessor.__init__().
-    # this class will implement: map_go_emotions_labels() for the use of GoEmotionsProcessor
+    def __init__(self, vad_mapper_name: VADMapperName, labels_names_list):
+        """"
+        labels_names_list - each label in it's corresponding index
+        """
+        self.label_idx_to_vad_mapping = None
 
-    def __init__(self):
-        pass
+        if vad_mapper_name is VADMapperName.NRC:
+            df_nrc = pd.read_csv(NRC_VAD_LEXICON_PATH, sep="\t",
+                                 names=['word', 'v', 'a', 'd'])
+            df_nrc = df_nrc[df_nrc["word"].apply(lambda word: word in labels_names_list)]
 
-    def map_go_emotions_labels(self, labels):
-        pass
+            assert len(df_nrc) == 28
+
+            df_nrc.set_index('word', inplace=True)
+
+            # Sort emotions by labels_names_list order
+            df_nrc = df_nrc.reindex(labels_names_list)
+
+            self.label_idx_to_vad_mapping = df_nrc.values.tolist()
+
+        else:
+            logger.info("ERROR - Unexpected VADMapperName, please handle {} VADMapperName case in VADMapper.__init__")
+            raise Exception\
+                ("ERROR - Unexpected VADMapperName, please handle {} VADMapperName case in VADMapper.__init__")
+
+    def map_go_emotions_labels(self, label_index):
+        return self.label_idx_to_vad_mapping[label_index]
 
 
 # ---------------------------------------------------------------------
@@ -57,26 +91,36 @@ class GoEmotionsProcessor(BaseProcessor):
                  args,
                  tokenizer,
                  max_length: int,
-                 vad_mapper: VADMapper = None):
+                 vad_mapper_name: VADMapperName = None):
         """
             args - full config
             tokenizer - hugging-face pretrained tokenizer instance
             max_length - the max_length we want our sentences to be
-            vad_mapper - instance of VADMapper, with method map_go_emotions_labels().
-                         if VADMapper is not initiated (=None), no VAD will be presented.
+            vad_mapper_name - instance of VADMapperName,
+                         if vad_mapper_name is not initiated (=None), no VAD will be presented.
         """
         self.args = args
         self.tokenizer = tokenizer
         self.max_length = max_length
-        self.vad_mapper = vad_mapper
-        self.with_vad = vad_mapper is not None
+        self.with_vad = vad_mapper_name is not None
 
         # Fetches labels list
         self.labels_list = data_utils.get_labels_list(self.args)
 
+        # Create vad_mapper
+        self.vad_mapper = None if not self.with_vad else VADMapper(vad_mapper_name, self.labels_list)
+
         # Fetch raw dataset, with columns: ['id', 'text', 'labels']
         # 'self.raw_dataset' remains *untouched* in this class.
         self.raw_dataset: DatasetDict = self._fetch_raw_dataset()
+
+        # Delete multi-labels from datasets
+        train, validation, test = self.get_pandas(self.raw_dataset)
+        train, validation, test = self.remove_multi_label_examples(train, validation, test)
+
+        self.raw_dataset = datasets.DatasetDict({"train": Dataset.from_pandas(train),
+                                                 "validation": Dataset.from_pandas(validation),
+                                                 "test": Dataset.from_pandas(test)})
 
         # Will hold the processed data (data with encodings, special labels, etc)
         self.processed_dataset: DatasetDict = self.raw_dataset
@@ -113,12 +157,27 @@ class GoEmotionsProcessor(BaseProcessor):
     def get_hf_dataset(self) -> DatasetDict:
         return self.processed_dataset
 
-    def get_pandas(self):
-        """ casts the processed dataset to 3 pandas data-frames - train, dev, test """
-        train, dev, test = self.processed_dataset["train"].to_pandas(), \
-                           self.processed_dataset["validation"].to_pandas(), \
-                           self.processed_dataset["test"].to_pandas()
+    @staticmethod
+    def get_pandas(dataset):
+        """ casts the dataset to 3 pandas data-frames - train, dev, test """
+        train, dev, test = dataset["train"].to_pandas(), \
+                           dataset["validation"].to_pandas(), \
+                           dataset["test"].to_pandas()
         return train, dev, test
+
+    @staticmethod
+    def remove_multi_label_examples(train, dev, test):
+        """ train, dev, test - 3 pandas data-frames """
+        train_labels_count = train['labels'].apply(lambda labels: len(labels))
+        dev_labels_count = dev['labels'].apply(lambda labels: len(labels))
+        test_labels_count = test['labels'].apply(lambda labels: len(labels))
+
+        train_one_label = train[train_labels_count == 1]
+        dev_one_label = dev[dev_labels_count == 1]
+        test_one_label = test[test_labels_count == 1]
+
+        return train_one_label, dev_one_label, test_one_label
+
 
     def get_dataset_by_mode(self, mode) -> datasets.arrow_dataset.Dataset:
         """
@@ -155,12 +214,13 @@ class GoEmotionsProcessor(BaseProcessor):
 
     # --- Hugging-face mappers --- (to be used in "dataset.map()" invocations)
 
-    @staticmethod
-    def _hf_batch_mapper__vad_mapping(examples):
+
+    def _hf_batch_mapper__vad_mapping(self, examples):
         examples['vad'] = []
-        for emotions_indices in examples['labels']:
-            # Todo - call VADMapper API with `example['labels']`. make sure it's 'float'
-            examples['vad'].append([1, 2, 3])
+        for label_idx in examples['labels']:
+            examples['vad'].append(self.vad_mapper.map_go_emotions_labels(label_idx[0]))
+            # label_idx - list of labels corresponding to the given input
+            # for now we assume we have one label per example
         return examples
 
 

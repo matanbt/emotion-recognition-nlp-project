@@ -10,7 +10,7 @@ from src.models.model_regression import BertForMultiDimensionRegression
 from models.model_baseline import BertForMultiLabelClassification
 
 # Data processor classes
-from data_processing.data_loader import GoEmotionsProcessor
+from data_processing.data_loader import GoEmotionsProcessor, VADMapperName
 
 from train_eval_run.utils import (
     compute_metrics_classification,
@@ -50,12 +50,12 @@ if __name__ == '__main__':
     # -------------------------------------- ModelConfigs --------------------------------------
 
     classic_multi_label_model_conf = ModelConfig("classic_multi_label", BertForMultiLabelClassification, compute_metrics_classification,
-                               "one_hot_labels", SIGMOID_FUNC, args)
+                               "one_hot_labels", SIGMOID_FUNC, args, None)
 
     # ---------------------------
 
     classic_vad_regression_model_conf = ModelConfig("classic_multi_label", BertForMultiDimensionRegression, compute_metrics_regression,
-                                                 "vad_mapping", IDENTITY_FUNC, args)
+                                                 "vad", IDENTITY_FUNC, args, VADMapperName.NRC, 3)
 
     # ---------------------------------------------------------------------
 
