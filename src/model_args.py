@@ -10,6 +10,7 @@ from models.model_regression import BertForMultiDimensionRegression
 class ModelArgs:
     """
     An instance of this class will contain the model *specific* arguments.
+    Basically wraps a `model` with everything it needs to be trained / evaluated.
 
     model_name - an informative name for the model
     model_class - class from models (e.g.: model_class.model_baseline.BertForMultiLabelClassification)
@@ -64,3 +65,8 @@ classic_vad_regression_model_conf = ModelArgs("classic_multi_label",
                                               VADMapperName.NRC, 3)
 
 # ---------------------------------------------------------------------
+
+model_choices = {
+    'basic': classic_multi_label_model_conf,
+    'regression': classic_vad_regression_model_conf,
+}

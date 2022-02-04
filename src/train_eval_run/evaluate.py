@@ -6,14 +6,12 @@ import torch
 from torch.utils.data import DataLoader, SequentialSampler
 from tqdm import tqdm
 
-from ..model_args import ModelArgs
-
 logger = logging.getLogger(__name__)
 
 
 def evaluate(args,
              model,
-             model_config: ModelArgs,
+             model_config,
              tb_writer, eval_dataset,
              mode,
              global_step=None):

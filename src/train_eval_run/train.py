@@ -11,13 +11,12 @@ from transformers import (
 )
 
 from .evaluate import evaluate
-from src.model_args import ModelArgs
 
 logger = logging.getLogger(__name__)
 
 def train(args,
           model: torch.nn.Module,
-          model_config: ModelArgs,
+          model_config,
           tokenizer,
           tb_writer,
           train_dataset,
