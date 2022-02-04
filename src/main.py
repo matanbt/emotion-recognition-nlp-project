@@ -1,40 +1,26 @@
 import argparse
-
-from constants import *
-from src.train_eval_run.ModelConfig import ModelConfig
-
-from train_eval_run import run_model
-
-# Models classes
-from src.models.model_regression import BertForMultiDimensionRegression
-from models.model_baseline import BertForMultiLabelClassification
-
-# Data processor classes
-from data_processing.data_loader import GoEmotionsProcessor, VADMapperName
-
-from train_eval_run.utils import (
-    compute_metrics_classification,
-    compute_metrics_regression,
-    init_logger,
-)
-
 import json
 import os
 import logging
 
 from attrdict import AttrDict
 
+from train_eval_run import run_model
+from train_eval_run.utils import init_logger, init_tensorboard_writer
+
+from model_args import classic_multi_label_model_conf
+
 logger = logging.getLogger(__name__)
-init_logger()
 
-if __name__ == '__main__':
+
+def main():
+    init_logger()
+
+    # CLI Arguments:
     cli_parser = argparse.ArgumentParser()
-
     cli_parser.add_argument("--config", type=str, required=True,
                             help="json config file to be used (e.g. `original.json`)")
     cli_args = cli_parser.parse_args()
-
-    data_processor_class: type = GoEmotionsProcessor
 
     logger.info("***** Starting main() *****")
 
@@ -45,18 +31,16 @@ if __name__ == '__main__':
         args = AttrDict(json.load(f))  # Note: don't add additional attributes to args
     logger.info("Training/evaluation parameters {}".format(args))
 
+    # Choose model args
+    model_args = classic_multi_label_model_conf
+
     # args.output_dir = ... # TODO add time-stamp to path
+    tb_writer = init_tensorboard_writer(os.path.join(args.output_dir, f"tb_summary_for_{model_args.model_name}_model"))
 
-    # -------------------------------------- ModelConfigs --------------------------------------
+    run_model.run(args, model_args, tb_writer)
 
-    classic_multi_label_model_conf = ModelConfig("classic_multi_label", BertForMultiLabelClassification, compute_metrics_classification,
-                               "one_hot_labels", SIGMOID_FUNC, args, None)
+    tb_writer.close()
 
-    # ---------------------------
 
-    classic_vad_regression_model_conf = ModelConfig("classic_multi_label", BertForMultiDimensionRegression, compute_metrics_regression,
-                                                 "vad", IDENTITY_FUNC, args, VADMapperName.NRC, 3)
-
-    # ---------------------------------------------------------------------
-
-    run_model.run(args, data_processor_class, classic_vad_regression_model_conf)
+if __name__ == '__main__':
+    main()

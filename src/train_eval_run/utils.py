@@ -62,3 +62,5 @@ def compute_metrics_regression(vads, preds):
     return results
 
 
+SIGMOID_FUNC = lambda x: 1 / (1 + np.exp(-x.detach().cpu().numpy()))
+IDENTITY_FUNC = lambda x: x

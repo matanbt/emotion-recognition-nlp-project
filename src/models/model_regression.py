@@ -2,7 +2,7 @@ import torch.nn as nn
 from transformers import BertPreTrainedModel, BertModel
 
 class BertForMultiDimensionRegression(BertPreTrainedModel):
-    def __init__(self, config, num_dim, loss_func=nn.MSELoss()):
+    def __init__(self, config, num_dim=3, loss_func=nn.MSELoss()):
         super().__init__(config)
         self.num_dim = num_dim
         self.bert = BertModel(config)

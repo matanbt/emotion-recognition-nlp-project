@@ -21,7 +21,7 @@ def add_tokenization_features(dataset: DatasetDict, tokenizer, max_length) -> Da
 # GoEmotions Utils
 go_emotions_cached_labels_list = None
 
-def get_labels_list(args=None):
+def get_ge_labels_list(args=None):
     """
         returns a list with GoEmotions labels
     """

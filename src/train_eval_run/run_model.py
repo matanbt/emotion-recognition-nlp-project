@@ -3,6 +3,7 @@ import os
 import glob
 
 import torch
+from torch.utils.tensorboard import SummaryWriter
 
 from transformers import (
     BertConfig,
@@ -15,24 +16,24 @@ from .utils import (
 
 from .train import train
 from .evaluate import evaluate
-from src.train_eval_run.ModelConfig import ModelConfig
 
 logger = logging.getLogger(__name__)
 
 
-def run(args, data_processor_class, model_config: ModelConfig):
+def run(args, model_args, tb_writer: SummaryWriter):
+    """
+    args - the full configuration for the run
+    model_args - model specific arguments, includes model class, data processor, metrics functions etc.
+    tv_writer - an instance to write to TensorBoard
+    """
 
-    logger.info("***** Starting run_model.run *****")
+    logger.info("***** Starting run_model.run() *****")
 
     set_seed(args)
 
-    # TODO replace this line somehow to be general
-    label_list = []
-    with open(os.path.join(args.data_dir, args.label_file), "r", encoding="utf-8") as f:
-        for line in f:
-            label_list.append(line.rstrip())
-    # TODO ------
+    label_list = model_args.data_processor_class.get_labels_list(args)
 
+    # Initiate all needed model's component
     config = BertConfig.from_pretrained(
         args.model_name_or_path,
         num_labels=len(label_list),
@@ -43,9 +44,8 @@ def run(args, data_processor_class, model_config: ModelConfig):
     tokenizer = BertTokenizer.from_pretrained(  # TODO - why do we use a custom tokenizer??
         args.tokenizer_name_or_path,
     )
-    model = model_config.model_class.from_pretrained(
+    model = model_args.model_class.from_pretrained(
         args.model_name_or_path,
-        model_config.num_dim,
         config=config
     )
 
@@ -54,7 +54,7 @@ def run(args, data_processor_class, model_config: ModelConfig):
     model.to(args.device)
 
     # Process Data
-    processor = data_processor_class(args, tokenizer, args.max_seq_len, model_config.vad_mapper_name)
+    processor = model_args.data_processor_class(args, tokenizer, args.max_seq_len, model_args.vad_mapper_name)
     processor.perform_full_preprocess()
 
     # Load dataset
@@ -66,7 +66,7 @@ def run(args, data_processor_class, model_config: ModelConfig):
         args.evaluate_test_during_training = True  # If there is no dev dataset, only use test dataset
 
     if args.do_train:
-        global_step, tr_loss = train(args, model, model_config, tokenizer,
+        global_step, tr_loss = train(args, model, model_args, tokenizer, tb_writer,
                                      train_dataset, dev_dataset, test_dataset)
         logger.info("Training Sum: global_step = {}, average loss = {}".format(global_step, tr_loss))
 
@@ -84,9 +84,9 @@ def run(args, data_processor_class, model_config: ModelConfig):
         logger.info("Evaluate the following checkpoints: %s", checkpoints)
         for checkpoint in checkpoints:
             global_step = checkpoint.split("-")[-1]
-            model = model_config.model_class.from_pretrained(checkpoint)
+            model = model_args.model_class.from_pretrained(checkpoint)
             model.to(args.device)
-            result = evaluate(args, model, model_config, test_dataset, "test", global_step)
+            result = evaluate(args, model, model_args, tb_writer, test_dataset, "test", global_step)
             result = dict((k + "_{}".format(global_step), v) for k, v in result.items())
             results.update(result)
 
@@ -97,7 +97,5 @@ def run(args, data_processor_class, model_config: ModelConfig):
         with open(output_eval_file, "w") as f_w:
             for key in sorted(results.keys()):
                 f_w.write("{} = {}\n".format(key, str(results[key])))
-
-        model_config.tb_writer.close()
 
         logger.info("***** Finished main() *****")

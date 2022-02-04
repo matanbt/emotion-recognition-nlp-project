@@ -11,14 +11,15 @@ from transformers import (
 )
 
 from .evaluate import evaluate
-from src.train_eval_run.ModelConfig import ModelConfig
+from src.model_args import ModelArgs
 
 logger = logging.getLogger(__name__)
 
 def train(args,
           model: torch.nn.Module,
-          model_config: ModelConfig,
+          model_config: ModelArgs,
           tokenizer,
+          tb_writer,
           train_dataset,
           dev_dataset=None,
           test_dataset=None):
@@ -93,9 +94,9 @@ def train(args,
 
                 if args.logging_steps > 0 and global_step % args.logging_steps == 0:
                     if args.evaluate_test_during_training:
-                        evaluate(args, model, model_config, test_dataset, "test", global_step)
+                        evaluate(args, model, model_config, tb_writer, test_dataset, "test", global_step)
                     else:
-                        evaluate(args, model, model_config, dev_dataset, "dev", global_step)
+                        evaluate(args, model, model_config, tb_writer, dev_dataset, "dev", global_step)
 
                 if args.save_steps > 0 and global_step % args.save_steps == 0:
                     save_model_checkpoint(args, model, tokenizer, global_step, optimizer, scheduler)

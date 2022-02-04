@@ -6,12 +6,17 @@ import torch
 from torch.utils.data import DataLoader, SequentialSampler
 from tqdm import tqdm
 
-from src.train_eval_run.ModelConfig import ModelConfig
+from ..model_args import ModelArgs
 
 logger = logging.getLogger(__name__)
 
 
-def evaluate(args, model, model_config: ModelConfig, eval_dataset, mode, global_step=None):
+def evaluate(args,
+             model,
+             model_config: ModelArgs,
+             tb_writer, eval_dataset,
+             mode,
+             global_step=None):
 
     results = {}
     eval_sampler = SequentialSampler(eval_dataset)
@@ -66,6 +71,6 @@ def evaluate(args, model, model_config: ModelConfig, eval_dataset, mode, global_
             f_w.write("  {} = {}\n".format(key, str(results[key])))
 
     # logs the results to TensorBoard
-    model_config.tb_writer.add_scalars(mode, results, global_step=global_step)
+    tb_writer.add_scalars(mode, results, global_step=global_step)
 
     return results

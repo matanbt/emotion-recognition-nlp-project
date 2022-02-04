@@ -11,11 +11,9 @@ import pandas as pd
 
 NRC_VAD_LEXICON_PATH = "../data/mapping-emotions-to-vad/nrc-vad/NRC-VAD-Lexicon.txt"
 
-
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------
-
 
 class VADMapperName(Enum):
     # Note: each VADMapperName should be handled in VADMapper.__init__
@@ -34,6 +32,7 @@ class VADMapper:
         self.label_idx_to_vad_mapping = None
 
         if vad_mapper_name is VADMapperName.NRC:
+            logger.info("VADMapper using NRC for VAD mappings.")
             df_nrc = pd.read_csv(NRC_VAD_LEXICON_PATH, sep="\t",
                                  names=['word', 'v', 'a', 'd'])
             df_nrc = df_nrc[df_nrc["word"].apply(lambda word: word in labels_names_list)]
@@ -48,9 +47,8 @@ class VADMapper:
             self.label_idx_to_vad_mapping = df_nrc.values.tolist()
 
         else:
-            logger.info("ERROR - Unexpected VADMapperName, please handle {} VADMapperName case in VADMapper.__init__")
-            raise Exception\
-                ("ERROR - Unexpected VADMapperName, please handle {} VADMapperName case in VADMapper.__init__")
+            raise Exception(f"ERROR - Unexpected VADMapperName, please handle {vad_mapper_name} "
+                             f"VADMapperName case in VADMapper.__init__()")
 
     def map_go_emotions_labels(self, label_index):
         return self.label_idx_to_vad_mapping[label_index]
@@ -67,14 +65,21 @@ class BaseProcessor:
             triggers the full preprocessing of the dataset.
             MUST be overridden by the processor class.
         """
-        print("WARNING: method perform_full_preprocess() was NOT overridden by dataset-processor.")
+        logger.warning("WARNING: method perform_full_preprocess() was NOT overridden by dataset-processor.")
 
     def get_dataset_by_mode(self, mode):
         """
             will return the 'mode' part of the dataset, ready to be used by Torch.
             MUST be overridden by the processor class.
         """
-        print("WARNING: method get_dataset_by_mode() was NOT overridden by dataset-processor.")
+        logger.warning("WARNING: method get_dataset_by_mode() was NOT overridden by dataset-processor.")
+
+    @staticmethod
+    def get_labels_list(args):
+        """
+            will return the list of labels (most of the times emotions) of the data.
+        """
+        logger.warning("WARNING: method get_labels_list() was NOT overridden by dataset-processor.")
 
 
 # ---------------------------------------------------------------------
@@ -91,6 +96,7 @@ class GoEmotionsProcessor(BaseProcessor):
                  args,
                  tokenizer,
                  max_length: int,
+                 remove_multi_lables=True, # TODO this is a temporary arg that should be removed! multi-labels should be dealt with !
                  vad_mapper_name: VADMapperName = None):
         """
             args - full config
@@ -99,13 +105,16 @@ class GoEmotionsProcessor(BaseProcessor):
             vad_mapper_name - instance of VADMapperName,
                          if vad_mapper_name is not initiated (=None), no VAD will be presented.
         """
+        logger.info("GoEmotionsProcessor: Fetching data and initiating the data-processor with: \n"
+                    f"args, tokenizer={tokenizer}, max_length={max_length}, vad_mapper_name={vad_mapper_name}")
+
         self.args = args
         self.tokenizer = tokenizer
         self.max_length = max_length
         self.with_vad = vad_mapper_name is not None
 
         # Fetches labels list
-        self.labels_list = data_utils.get_labels_list(self.args)
+        self.labels_list = GoEmotionsProcessor.get_labels_list(args)
 
         # Create vad_mapper
         self.vad_mapper = None if not self.with_vad else VADMapper(vad_mapper_name, self.labels_list)
@@ -114,13 +123,9 @@ class GoEmotionsProcessor(BaseProcessor):
         # 'self.raw_dataset' remains *untouched* in this class.
         self.raw_dataset: DatasetDict = self._fetch_raw_dataset()
 
-        # Delete multi-labels from datasets
-        train, validation, test = self.get_pandas(self.raw_dataset)
-        train, validation, test = self.remove_multi_label_examples(train, validation, test)
-
-        self.raw_dataset = datasets.DatasetDict({"train": Dataset.from_pandas(train),
-                                                 "validation": Dataset.from_pandas(validation),
-                                                 "test": Dataset.from_pandas(test)})
+        if remove_multi_lables:
+            self.raw_dataset = self.raw_dataset.filter(self._hf_batch_filterer__remove_multi_label,
+                                                       batched=True)
 
         # Will hold the processed data (data with encodings, special labels, etc)
         self.processed_dataset: DatasetDict = self.raw_dataset
@@ -130,6 +135,7 @@ class GoEmotionsProcessor(BaseProcessor):
     def perform_full_preprocess(self):
         """ Performs full preprocessing, preparing dataset for training with Torch"""
         # TODO - consider caching + flagging to prevent this function from being called twice
+        logger.info("GoEmotionsProcessor: Performs full preprocessing of the data")
 
         # Adds 'one_hot_labels' columns
         self.processed_dataset = \
@@ -144,13 +150,10 @@ class GoEmotionsProcessor(BaseProcessor):
         if self.with_vad:
             # Adds 'vad' column
             self.processed_dataset = \
-                self.processed_dataset.map(self._hf_batch_mapper__vad_mapping,
-                                                                batched=True)
+                self.processed_dataset.map(self._hf_batch_mapper__vad_mapping, batched=True)
 
         # sets the relevant columns as tensors
         self._cast_to_tensors()
-
-
 
     # --- Dataset Getters --
 
@@ -158,26 +161,12 @@ class GoEmotionsProcessor(BaseProcessor):
         return self.processed_dataset
 
     @staticmethod
-    def get_pandas(dataset):
+    def get_pandas(dataset: DatasetDict):
         """ casts the dataset to 3 pandas data-frames - train, dev, test """
         train, dev, test = dataset["train"].to_pandas(), \
                            dataset["validation"].to_pandas(), \
                            dataset["test"].to_pandas()
         return train, dev, test
-
-    @staticmethod
-    def remove_multi_label_examples(train, dev, test):
-        """ train, dev, test - 3 pandas data-frames """
-        train_labels_count = train['labels'].apply(lambda labels: len(labels))
-        dev_labels_count = dev['labels'].apply(lambda labels: len(labels))
-        test_labels_count = test['labels'].apply(lambda labels: len(labels))
-
-        train_one_label = train[train_labels_count == 1]
-        dev_one_label = dev[dev_labels_count == 1]
-        test_one_label = test[test_labels_count == 1]
-
-        return train_one_label, dev_one_label, test_one_label
-
 
     def get_dataset_by_mode(self, mode) -> datasets.arrow_dataset.Dataset:
         """
@@ -187,6 +176,10 @@ class GoEmotionsProcessor(BaseProcessor):
         assert mode in ['train', 'dev', 'test']
         mode2split = {'train': 'train', 'dev': 'validation', 'test': 'test'}
         return self.processed_dataset[mode2split[mode]]
+
+    @staticmethod
+    def get_labels_list(args=None):
+        return data_utils.get_ge_labels_list(args)
 
     # --- Utils Methods: for data processing ---
 
@@ -211,22 +204,19 @@ class GoEmotionsProcessor(BaseProcessor):
                                           columns=features_to_tensor,
                                           device=self.args.device)
 
-
     # --- Hugging-face mappers --- (to be used in "dataset.map()" invocations)
-
 
     def _hf_batch_mapper__vad_mapping(self, examples):
         examples['vad'] = []
         for label_idx in examples['labels']:
-            examples['vad'].append(self.vad_mapper.map_go_emotions_labels(label_idx[0]))
             # label_idx - list of labels corresponding to the given input
-            # for now we assume we have one label per example
+            examples['vad'].append(self.vad_mapper.map_go_emotions_labels(label_idx[0]))
+            # TODO overcome this assumption: for now we assume we have one label per example
         return examples
-
 
     @staticmethod
     def _hf_batch_mapper__one_hot_label(examples):
-        labels_list = data_utils.get_labels_list()
+        labels_list = GoEmotionsProcessor.get_labels_list()
         examples['one_hot_labels'] = []
         for emotions_indices in examples['labels']:  # TODO (?) can be done without a loop with numpy vectorization
             # Note: each element in the one_hot_vector must be 'float', for Torch loss calculation
@@ -235,12 +225,20 @@ class GoEmotionsProcessor(BaseProcessor):
             examples['one_hot_labels'].append(one_hot_label)
         return examples
 
+    @staticmethod
+    def _hf_batch_filterer__remove_multi_label(examples):
+        filtered_list = []
+        for labels_lst in examples['labels']:
+            filtered_list.append(len(labels_lst) == 1)
+
+        return filtered_list
 
 
 # ---------------------------------------------------------------------
 # TODO provide support for processing datasets such as fb-valence-arousal, emobank
 class EmoBankProcessor(BaseProcessor):
     pass
+
 
 # ---------------------------------------------------------------------
 class FacebookVAProcessor(BaseProcessor):
