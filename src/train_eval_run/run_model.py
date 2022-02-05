@@ -48,8 +48,7 @@ def run(args, model_args, tb_writer: SummaryWriter):
     model = model_args.model_class.from_pretrained(
         args.model_name_or_path,
         config=config,
-        num_dim=model_args.num_dim,
-        hidden_layers_count=model_args.hidden_layers_count,
+        **vars(model_args)
     )
 
     # GPU or CPU

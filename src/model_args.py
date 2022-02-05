@@ -10,7 +10,8 @@ from models.model_regression import BertForMultiDimensionRegression
 class ModelArgs:
     """
     An instance of this class will contain the model *specific* arguments.
-    Basically wraps a `model` with everything it needs to be trained / evaluated.
+    - Basically wraps a `model` with everything it needs to be trained / evaluated.
+    - These arguments will also be passed to the model __init__.
 
     model_name - an informative name for the model
     model_class - class from models (e.g.: model_class.model_baseline.BertForMultiLabelClassification)
@@ -21,7 +22,7 @@ class ModelArgs:
 
     Optional (defaults to None):
     vad_mapper_name - data_loader.VADMapperName enum
-    num_dim - relevant only for regression models, number of dimensions the model need to estimate (e.g.: in VAD =3)
+    target_dim - relevant only for regression models, number of dimensions the model need to estimate (e.g.: in VAD =3)
     hidden_layers_count - amount of NN layers in the "output-layer" of the model (default to `1`)
     threshold - the threshold for classification problems, used in evaluation.
     """
@@ -40,11 +41,30 @@ class ModelArgs:
 
     # Optional (regression oriented):
     vad_mapper_name: VADMapperName = None
-    num_dim: int = None
-    hidden_layers_count: int = 1
+    target_dim: int = None
+    hidden_layers_count: int = None
+    hidden_layer_dim: int = None
 
     # Optional (classification oriented)
     threshold: float = None
+
+
+    def override_with_args(self, args_to_override: dict):
+        """
+        Given the config's `args_to_override`, overrides the desired attributes
+        """
+        if args_to_override is None: return
+        overridable_fields = set(vars(self).keys())
+        # TODO (optional): can also add some fields that require special handling, for example choosing a function or class
+        overridable_fields -= {'model_class', 'data_processor_class','compute_metrics',
+                               'func_on_model_output'} # can't override these attributes..
+
+        for field_to_override, val in args_to_override.items():
+            if field_to_override not in overridable_fields:
+                raise ValueError\
+                    (f"Wrong Configuration: {args_to_override.keys()} are not overridable fields :(")
+            setattr(self, field_to_override, val)
+
 
 
 def get_model_args_from_json(filename: str) -> ModelArgs:
@@ -54,7 +74,7 @@ def get_model_args_from_json(filename: str) -> ModelArgs:
 
 # -------------------------------------- PreSet Model Args  --------------------------------------
 
-classic_multi_label_model_conf = ModelArgs("classic_multi_label",
+classic_multi_label_model_conf = ModelArgs("ge_classic_multi_label",
                                            BertForMultiLabelClassification,
                                            GoEmotionsProcessor,
                                            compute_metrics_classification,
@@ -64,21 +84,22 @@ classic_multi_label_model_conf = ModelArgs("classic_multi_label",
 
 # ---------------------------
 
-classic_vad_regression_model_conf = ModelArgs("classic_multi_label",
+classic_vad_regression_model_conf = ModelArgs("ge_regression_to_vad",
                                               BertForMultiDimensionRegression,
                                               GoEmotionsProcessor,
                                               compute_metrics_regression,
                                               IDENTITY_FUNC,
                                               "vad",
                                               vad_mapper_name=VADMapperName.NRC,
-                                              num_dim=3,
+                                              target_dim=3,
+                                              hidden_layer_dim=400,
                                               hidden_layers_count=3)
 # ---------------------------
 # We can add more ModelArgs instances here...
 # ---------------------------------------------------------------------
 
 model_choices = {
-    'basic': classic_multi_label_model_conf,
+    'baseline': classic_multi_label_model_conf,
     'regression': classic_vad_regression_model_conf,
     # we can add more model choices here... ('our-model-name': the-ModelArgs-instance)
 }

@@ -25,15 +25,17 @@ class VADMapper:
         Class for controlling the VAD mappings
     """
 
-    def __init__(self, vad_mapper_name: VADMapperName, labels_names_list):
+    def __init__(self, args, vad_mapper_name: VADMapperName, labels_names_list):
         """"
-        labels_names_list - each label in it's corresponding index
+        args - contains the vad mappings paths
+        vad_mapper_name - the dataset the mapper shall be set to, an instance of VADMapperName
+        labels_names_list - each label in its corresponding index
         """
         self.label_idx_to_vad_mapping = None
 
         if vad_mapper_name is VADMapperName.NRC:
             logger.info("VADMapper using NRC for VAD mappings.")
-            df_nrc = pd.read_csv(NRC_VAD_LEXICON_PATH, sep="\t",
+            df_nrc = pd.read_csv(args.nrc_vad_mapping_path, sep="\t",
                                  names=['word', 'v', 'a', 'd'])
             df_nrc = df_nrc[df_nrc["word"].apply(lambda word: word in labels_names_list)]
 
@@ -117,7 +119,7 @@ class GoEmotionsProcessor(BaseProcessor):
         self.labels_list = GoEmotionsProcessor.get_labels_list(args)
 
         # Create vad_mapper
-        self.vad_mapper = None if not self.with_vad else VADMapper(vad_mapper_name, self.labels_list)
+        self.vad_mapper = None if not self.with_vad else VADMapper(args, vad_mapper_name, self.labels_list)
 
         # Fetch raw dataset, with columns: ['id', 'text', 'labels']
         # 'self.raw_dataset' remains *untouched* in this class.

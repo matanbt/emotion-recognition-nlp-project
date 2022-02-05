@@ -3,7 +3,7 @@ from transformers import BertPreTrainedModel, BertModel
 
 
 class BertForMultiLabelClassification(BertPreTrainedModel):
-    def __init__(self, config):
+    def __init__(self, config, **kwargs):
         super().__init__(config)
         self.num_labels = config.num_labels
 

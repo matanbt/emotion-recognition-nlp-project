@@ -6,11 +6,12 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
     def __init__(self,
                  config,
                  loss_func=nn.MSELoss(),
-                 num_dim=3,
+                 target_dim=3,
                  hidden_layers_count=1,
-                 hidden_layer_dim=400):
+                 hidden_layer_dim=400,
+                 **kwargs):
         super().__init__(config)
-        self.num_dim = num_dim
+        self.target_dim = target_dim
         self.hidden_layers_count = hidden_layers_count
         self.hidden_layers_dim = hidden_layer_dim
 
@@ -18,14 +19,14 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
         if hidden_layers_count == 1:
-            self.output_layer = nn.Linear(config.hidden_size, self.num_dim)
+            self.output_layer = nn.Linear(config.hidden_size, self.target_dim)
         else:
             # stack the hidden layers
             layers_lst = []
             layers_lst += [nn.Linear(config.hidden_size, self.hidden_layers_dim), nn.ReLU()]
             for _ in range(self.hidden_layers_count - 2):
                 layers_lst += [nn.Linear(self.hidden_layers_dim, self.hidden_layers_dim), nn.ReLU()]
-            layers_lst += [nn.Linear(self.hidden_layers_dim, self.num_dim)]
+            layers_lst += [nn.Linear(self.hidden_layers_dim, self.target_dim)]
             self.output_layer = nn.Sequential(*layers_lst)
         self.loss_func = loss_func
 
@@ -44,7 +45,7 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
             **kwargs
     ):
         """
-            output_targets - torch.Tensor of shape (# input sentences, self.num_dim) (same as logits)
+            output_targets - torch.Tensor of shape (# input sentences, self.target_dim) (same as logits)
             vad - if vad argument is present, is overrides outputs_target
         """
         output_targets = output_targets if vad is None else vad

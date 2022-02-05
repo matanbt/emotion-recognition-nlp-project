@@ -53,9 +53,10 @@ def evaluate(args,
 
             eval_loss += tmp_eval_loss.mean().item()
         nb_eval_steps += 1
+
         if preds is None:
             preds = model_args.func_on_model_output(logits).cpu().numpy()
-            targets = batch[model_args.target_name].detach().cpu().numpy()  # TODO - why do we need detach here?
+            targets = batch[model_args.target_name].detach().cpu().numpy()
         else:
             preds = np.append(preds,  model_args.func_on_model_output(logits).cpu().numpy(), axis=0)
             targets = np.append(targets, batch[model_args.target_name].detach().cpu().numpy(), axis=0)
