@@ -8,4 +8,4 @@
 #SBATCH --ntasks=1
 #SBATCH --gpus=1
 
-python3 main.py --config regression.json
+python3 src/main.py --config regression.json
