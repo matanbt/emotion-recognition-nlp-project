@@ -39,6 +39,7 @@ class ModelArgs:
     # Optional:
     vad_mapper_name: VADMapperName = None
     num_dim: int = None
+    hidden_layers_count: int = 1
 
 
 def get_model_args_from_json(filename: str) -> ModelArgs:
@@ -62,7 +63,9 @@ classic_vad_regression_model_conf = ModelArgs("classic_multi_label",
                                               compute_metrics_regression,
                                               IDENTITY_FUNC,
                                               "vad",
-                                              VADMapperName.NRC, 3)
+                                              VADMapperName.NRC,
+                                              3,
+                                              3)
 
 # ---------------------------------------------------------------------
 

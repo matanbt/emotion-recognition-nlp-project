@@ -124,8 +124,7 @@ class GoEmotionsProcessor(BaseProcessor):
         self.raw_dataset: DatasetDict = self._fetch_raw_dataset()
 
         if remove_multi_lables:
-            self.raw_dataset = self.raw_dataset.filter(self._hf_batch_filterer__remove_multi_label,
-                                                       batched=True)
+            self.raw_dataset = self.raw_dataset.filter(self._hf_filterer__remove_multi_label)
 
         # Will hold the processed data (data with encodings, special labels, etc)
         self.processed_dataset: DatasetDict = self.raw_dataset
@@ -226,12 +225,8 @@ class GoEmotionsProcessor(BaseProcessor):
         return examples
 
     @staticmethod
-    def _hf_batch_filterer__remove_multi_label(examples):
-        filtered_list = []
-        for labels_lst in examples['labels']:
-            filtered_list.append(len(labels_lst) == 1)
-
-        return filtered_list
+    def _hf_filterer__remove_multi_label(example):
+        return len(example['labels']) == 1
 
 
 # ---------------------------------------------------------------------

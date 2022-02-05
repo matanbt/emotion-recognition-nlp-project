@@ -21,7 +21,7 @@ def main():
     cli_parser.add_argument("--config", type=str, required=True,
                             help="json config file to be used (e.g. `original.json`)")
     cli_parser.add_argument("--model", type=str, required=True, choices=model_choices.keys(),
-                            help=f"name of model to train / evaluate (from {set(model_choices.keys())})")
+                            help=f"name of model to train / evaluate (from {set(model_choices.keys())})")  # TODO move this argument in the future to the json config
     cli_args = cli_parser.parse_args()
 
     logger.info("***** Starting main() *****")
@@ -36,7 +36,8 @@ def main():
 
     # Choose model args
     model_args = model_choices[cli_args.model]
-    logger.info(f" Model choice: {cli_args.model} \n Model arguments: {cli_args.model}")
+    logger.info(f"Model choice: {cli_args.model}")
+    logger.info(f"Model arguments: {model_args}")
 
     # args.output_dir = ... # TODO add time-stamp to path
     tb_writer = init_tensorboard_writer(os.path.join(args.output_dir, f"tb_summary_for_{model_args.model_name}_model"))

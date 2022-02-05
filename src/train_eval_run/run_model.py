@@ -46,7 +46,9 @@ def run(args, model_args, tb_writer: SummaryWriter):
     )
     model = model_args.model_class.from_pretrained(
         args.model_name_or_path,
-        config=config
+        config=config,
+        num_dim=model_args.num_dim,
+        hidden_layers_count=model_args.hidden_layers_count,
     )
 
     # GPU or CPU
@@ -54,7 +56,8 @@ def run(args, model_args, tb_writer: SummaryWriter):
     model.to(args.device)
 
     # Process Data
-    processor = model_args.data_processor_class(args, tokenizer, args.max_seq_len, model_args.vad_mapper_name)
+    processor = model_args.data_processor_class(args, tokenizer, args.max_seq_len,
+                                                vad_mapper_name=model_args.vad_mapper_name)
     processor.perform_full_preprocess()
 
     # Load dataset

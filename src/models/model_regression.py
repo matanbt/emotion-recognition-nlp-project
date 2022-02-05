@@ -2,12 +2,31 @@ import torch.nn as nn
 from transformers import BertPreTrainedModel, BertModel
 
 class BertForMultiDimensionRegression(BertPreTrainedModel):
-    def __init__(self, config, num_dim=3, loss_func=nn.MSELoss()):
+
+    def __init__(self,
+                 config,
+                 loss_func=nn.MSELoss(),
+                 num_dim=3,
+                 hidden_layers_count=1,
+                 hidden_layer_dim=400):
         super().__init__(config)
         self.num_dim = num_dim
+        self.hidden_layers_count = hidden_layers_count
+        self.hidden_layers_dim = hidden_layer_dim
+
         self.bert = BertModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.output_layer = nn.Linear(config.hidden_size, self.num_dim)
+
+        if hidden_layers_count == 1:
+            self.output_layer = nn.Linear(config.hidden_size, self.num_dim)
+        else:
+            # stack the hidden layers
+            layers_lst = []
+            layers_lst += [nn.Linear(config.hidden_size, self.hidden_layers_dim), nn.ReLU()]
+            for _ in range(self.hidden_layers_count - 2):
+                layers_lst += [nn.Linear(self.hidden_layers_dim, self.hidden_layers_dim), nn.ReLU()]
+            layers_lst += [nn.Linear(self.hidden_layers_dim, self.num_dim)]
+            self.output_layer = nn.Sequential(*layers_lst)
         self.loss_func = loss_func
 
         self.init_weights()
@@ -21,11 +40,15 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
             head_mask=None,
             inputs_embeds=None,
             output_targets=None,
+            vad=None,
             **kwargs
     ):
         """
             output_targets - torch.Tensor of shape (# input sentences, self.num_dim) (same as logits)
+            vad - if vad argument is present, is overrides outputs_target
         """
+        output_targets = output_targets if vad is None else vad
+
         outputs = self.bert(
             input_ids,
             attention_mask=attention_mask,
@@ -34,6 +57,8 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
             head_mask=head_mask,
             inputs_embeds=inputs_embeds,
         )
+        # outputs[0] : the whole last-hidden-layer of BERT (batch_size, sequence_length, hidden_size)
+        # outputs[1] : [CLS] token in last hidden layer
         pooled_output = outputs[1]
 
         pooled_output = self.dropout(pooled_output)
