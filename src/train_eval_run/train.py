@@ -4,6 +4,7 @@ import logging
 import torch
 from torch.utils.data import DataLoader, RandomSampler
 from tqdm import tqdm, trange
+from torch.utils.tensorboard import SummaryWriter
 
 from transformers import (
     AdamW,
@@ -16,12 +17,22 @@ logger = logging.getLogger(__name__)
 
 def train(args,
           model: torch.nn.Module,
-          model_config,
+          model_args,
           tokenizer,
-          tb_writer,
+          tb_writer: SummaryWriter,
           train_dataset,
           dev_dataset=None,
           test_dataset=None):
+    """
+    Trains the given model
+
+    args - technical arguments
+    model - an instance of the model to train (inherits from BertPreTrainedModel)
+    model_args - model specific arguments
+    tb_writer - a TensordBoard writer instance to write evaluation results
+    train_dataset, dev_dataset, test_dataset - the split dataset
+    """
+
     logger.info("***** Preparing Training *****")
 
     train_sampler = RandomSampler(train_dataset)
@@ -93,9 +104,9 @@ def train(args,
 
                 if args.logging_steps > 0 and global_step % args.logging_steps == 0:
                     if args.evaluate_test_during_training:
-                        evaluate(args, model, model_config, tb_writer, test_dataset, "test", global_step)
+                        evaluate(args, model, model_args, tb_writer, test_dataset, "test", global_step)
                     else:
-                        evaluate(args, model, model_config, tb_writer, dev_dataset, "dev", global_step)
+                        evaluate(args, model, model_args, tb_writer, dev_dataset, "dev", global_step)
 
                 if args.save_steps > 0 and global_step % args.save_steps == 0:
                     save_model_checkpoint(args, model, tokenizer, global_step, optimizer, scheduler)
@@ -113,6 +124,7 @@ def train(args,
     logger.info("***** Finished Training *****")
 
     return global_step, tr_loss / global_step
+
 
 def save_model_checkpoint(args,
                           model, tokenizer,

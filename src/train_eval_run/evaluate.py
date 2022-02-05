@@ -5,23 +5,35 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader, SequentialSampler
 from tqdm import tqdm
+from torch.utils.tensorboard import SummaryWriter
 
 logger = logging.getLogger(__name__)
 
 
 def evaluate(args,
              model,
-             model_config,
-             tb_writer, eval_dataset,
-             mode,
-             global_step=None):
+             model_args,
+             tb_writer: SummaryWriter,
+             eval_dataset,
+             mode: str,
+             global_step: int = None):
+    """
+    Evaluates the given model on the given dataset
+
+    args - technical arguments
+    model - an instance of the model to train (inherits from BertPreTrainedModel)
+    model_args - model specific arguments
+    tb_writer - a TensordBoard writer instance to write evaluation results
+    eval_dataset - the evaluted dataset
+    mode - the name of the dataset being evaluated (e.g. 'dev')
+    """
 
     results = {}
     eval_sampler = SequentialSampler(eval_dataset)
     eval_dataloader = DataLoader(eval_dataset, sampler=eval_sampler, batch_size=args.eval_batch_size)
 
     # Eval!
-    if global_step != None:
+    if global_step is not None:
         logger.info("***** Running evaluation on {} dataset ({} step) *****".format(mode, global_step))
     else:
         logger.info("***** Running evaluation on {} dataset *****".format(mode))
@@ -42,19 +54,22 @@ def evaluate(args,
             eval_loss += tmp_eval_loss.mean().item()
         nb_eval_steps += 1
         if preds is None:
-            preds = model_config.func_on_model_output(logits)
-            targets = batch[model_config.target_name].detach().cpu().numpy()  # TODO - why do we need detach here?
+            preds = model_args.func_on_model_output(logits).cpu().numpy()
+            targets = batch[model_args.target_name].detach().cpu().numpy()  # TODO - why do we need detach here?
         else:
-            preds = np.append(preds,  model_config.func_on_model_output(logits), axis=0)
-            targets = np.append(targets, batch[model_config.target_name].detach().cpu().numpy(), axis=0)
+            preds = np.append(preds,  model_args.func_on_model_output(logits).cpu().numpy(), axis=0)
+            targets = np.append(targets, batch[model_args.target_name].detach().cpu().numpy(), axis=0)
 
     eval_loss = eval_loss / nb_eval_steps
     results = {
         "loss": eval_loss
     }
-    preds[preds > args.threshold] = 1
-    preds[preds <= args.threshold] = 0
-    result = model_config.compute_metrics(targets, preds)
+
+    if model_args.threshold is not None:
+        preds[preds > args.threshold] = 1
+        preds[preds <= args.threshold] = 0
+
+    result = model_args.compute_metrics(targets, preds)
     results.update(result)
 
     output_dir = os.path.join(args.output_dir, mode)

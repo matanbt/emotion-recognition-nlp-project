@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import glob
@@ -79,6 +80,8 @@ def run(args, model_args, tb_writer: SummaryWriter):
             os.path.dirname(c) for c in sorted(glob.glob(args.output_dir + "/**/" + "pytorch_model.bin",
                                                          recursive=True))
         )
+        checkpoints.sort(key=lambda cpt: int(cpt.split('-')[-1]))  # sort by global-step
+
         if not args.eval_all_checkpoints:
             checkpoints = checkpoints[-1:]
         else:
@@ -86,7 +89,7 @@ def run(args, model_args, tb_writer: SummaryWriter):
             logging.getLogger("transformers.modeling_utils").setLevel(logging.WARN)  # Reduce logging
         logger.info("Evaluate the following checkpoints: %s", checkpoints)
         for checkpoint in checkpoints:
-            global_step = checkpoint.split("-")[-1]
+            global_step = int(checkpoint.split("-")[-1])
             model = model_args.model_class.from_pretrained(checkpoint)
             model.to(args.device)
             result = evaluate(args, model, model_args, tb_writer, test_dataset, "test", global_step)
@@ -96,7 +99,6 @@ def run(args, model_args, tb_writer: SummaryWriter):
         logger.info("Evaluate the following checkpoints: %s", checkpoints)
 
         output_eval_file = os.path.join(args.output_dir, "eval_results.txt")
-        # TODO: log this evaluations to TensorBoard as well
         with open(output_eval_file, "w") as f_w:
             for key in sorted(results.keys()):
                 f_w.write("{} = {}\n".format(key, str(results[key])))
