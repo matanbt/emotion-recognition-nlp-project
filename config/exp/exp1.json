@@ -1,10 +1,10 @@
 {
-  "desc": "The regression model of GoEmotions, using VAD mappings",
+  "desc": "test with 1 layer",
   "task": "goemotions",
 
   "model_args": "regression",
   "model_args_override": {
-    "target_dim": 3
+    "hidden_layers_count": 1
   },
 
   "data_dir": "data/goemotions",

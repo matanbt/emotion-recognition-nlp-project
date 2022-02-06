@@ -1,10 +1,10 @@
 {
-  "desc": "The regression model of GoEmotions, using VAD mappings",
+  "desc": "test with 1 layers & big LR ",
   "task": "goemotions",
 
   "model_args": "regression",
   "model_args_override": {
-    "target_dim": 3
+    "hidden_layers_count": 1
   },
 
   "data_dir": "data/goemotions",
@@ -41,5 +41,5 @@
   "seed": 42,
   "train_batch_size": 16,
   "eval_batch_size": 32,
-  "learning_rate": 5e-4
+  "learning_rate": 5e-2
 }
