@@ -17,6 +17,7 @@ def init_logger():
     logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                         datefmt='%m/%d/%Y %H:%M:%S',
                         level=logging.INFO)
+    # TODO save log to file with date in its name!
 
 
 def init_tensorboard_writer(path: str):
