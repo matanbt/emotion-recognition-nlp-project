@@ -1,6 +1,7 @@
 import torch.nn as nn
 from transformers import BertPreTrainedModel, BertModel
 
+
 class BertForMultiDimensionRegression(BertPreTrainedModel):
 
     def __init__(self,

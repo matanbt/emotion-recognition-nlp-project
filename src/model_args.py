@@ -56,13 +56,12 @@ class ModelArgs:
         if args_to_override is None: return
         overridable_fields = set(vars(self).keys())
         # TODO (optional): can also add some fields that require special handling, for example choosing a function or class
-        overridable_fields -= {'model_class', 'data_processor_class','compute_metrics',
-                               'func_on_model_output'} # can't override these attributes..
+        overridable_fields -= {'model_class', 'data_processor_class', 'compute_metrics',
+                               'func_on_model_output'}  # can't override these attributes..
 
         for field_to_override, val in args_to_override.items():
             if field_to_override not in overridable_fields:
-                raise ValueError\
-                    (f"Wrong Configuration: {args_to_override.keys()} are not overridable fields :(")
+                raise ValueError(f"Wrong Configuration: {args_to_override.keys()} are not overridable fields :(")
             setattr(self, field_to_override, val)
 
 
