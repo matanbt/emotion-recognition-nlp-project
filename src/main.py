@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 
 
 def main():
-    init_logger()
 
     # --- Parsing CLI Arguments ---
     cli_parser = argparse.ArgumentParser()
@@ -30,6 +29,11 @@ def main():
     config_path = os.path.join("config", cli_args.config)
     with open(config_path) as f:
         args = AttrDict(json.load(f))
+
+    summary_path = os.path.join(args.output_dir, f"summary_{args.task}_model_"
+                                                   f"{get_curr_time_for_filename()}")
+    init_logger(summary_path)
+
     logger.info(f"Configuration file: {config_path}")
     logger.info("Training/evaluation parameters {}".format(args))
 
@@ -42,9 +46,7 @@ def main():
     logger.info(f"Model arguments: {model_args}")
 
     # Initiate Tensorboard
-    tb_writer_path = os.path.join(args.output_dir, f"tb_summary_for_{model_args.model_name}_model_"
-                                                   f"{get_curr_time_for_filename()}")
-    tb_writer = init_tensorboard_writer(tb_writer_path)
+    tb_writer = init_tensorboard_writer(summary_path)
 
     # --- Run ---
     run_model.run(args, model_args, tb_writer)

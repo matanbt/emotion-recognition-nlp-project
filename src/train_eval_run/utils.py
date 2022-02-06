@@ -13,11 +13,14 @@ from sklearn.metrics import r2_score, mean_squared_error
 
 from sklearn.neighbors import NearestNeighbors
 
-def init_logger():
+def init_logger(dir_path: str):
+    os.makedirs(dir_path)
+    path = os.path.join(dir_path, 'run.log')
     logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                         datefmt='%m/%d/%Y %H:%M:%S',
+                        filename=path,
+                        filemode='w',
                         level=logging.INFO)
-    # TODO save log to file with date in its name!
 
 
 def init_tensorboard_writer(path: str):
