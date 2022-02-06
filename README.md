@@ -28,3 +28,4 @@ Where `config.json` is a configuration file located in `./config`
 - attrdict==2.0.1
 - pandas
 - tensorboard
+- sklearn
