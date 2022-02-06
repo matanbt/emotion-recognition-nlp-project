@@ -9,6 +9,7 @@ from train_eval_run import run_model
 from train_eval_run.utils import init_logger, init_tensorboard_writer
 
 from model_args import model_choices
+from train_eval_run.utils import get_curr_time_for_filename
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +42,9 @@ def main():
     logger.info(f"Model arguments: {model_args}")
 
     # Initiate Tensorboard
-    tb_writer = init_tensorboard_writer(os.path.join(args.output_dir, f"tb_summary_for_{model_args.model_name}_model"))
+    tb_writer_path = os.path.join(args.output_dir, f"tb_summary_for_{model_args.model_name}_model_"
+                                                   f"{get_curr_time_for_filename}")
+    tb_writer = init_tensorboard_writer(tb_writer_path)
 
     # --- Run ---
     run_model.run(args, model_args, tb_writer)

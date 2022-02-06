@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
-from train_eval_run.utils import compute_metrics_classification, SIGMOID_FUNC, compute_metrics_regression, IDENTITY_FUNC
+from train_eval_run.utils import compute_metrics_classification, SIGMOID_FUNC, \
+    compute_metrics_regression_vad, IDENTITY_FUNC
 from data_processing.data_loader import VADMapperName, GoEmotionsProcessor
 from models.model_baseline import BertForMultiLabelClassification
 from models.model_regression import BertForMultiDimensionRegression
@@ -86,7 +87,7 @@ classic_multi_label_model_conf = ModelArgs("ge_classic_multi_label",
 classic_vad_regression_model_conf = ModelArgs("ge_regression_to_vad",
                                               BertForMultiDimensionRegression,
                                               GoEmotionsProcessor,
-                                              compute_metrics_regression,
+                                              compute_metrics_regression_vad,
                                               IDENTITY_FUNC,
                                               "vad",
                                               vad_mapper_name=VADMapperName.NRC,

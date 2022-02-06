@@ -1,6 +1,7 @@
 import os
 import random
 import logging
+from datetime import datetime
 
 from torch.utils.tensorboard import SummaryWriter
 
@@ -24,6 +25,11 @@ def init_tensorboard_writer(path: str):
     tb_writer = SummaryWriter(path)
     return tb_writer
 
+def get_curr_time_for_filename():
+    now = datetime.now()
+    # dd.mm.YY_H:M
+    now_string = now.strftime("%d.%m.%Y_%H:%M")
+    return now_string
 
 def set_seed(args):
     random.seed(args.seed)
@@ -51,13 +57,16 @@ def compute_metrics_classification(labels, preds):
     return results
 
 
-def compute_metrics_regression(vads, preds):
-    # TODO
+def compute_metrics_regression_vad(vads, preds):
     assert len(preds) == len(vads)
     results = dict()
 
     results["R_squared_score"] = r2_score(vads, preds)
     results["mean_squared_error"] = mean_squared_error(vads, preds)
+
+    for i, vad_letter in enumerate("vad"):
+        results[f"R_squared_score_{vad_letter}"] = r2_score(vads[:, i], preds[:, i])
+        results[f"mean_squared_error_{vad_letter}"] = mean_squared_error(vads[:, i], preds[:, i])
 
     return results
 
