@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
-from train_eval_run.utils import compute_metrics_classification, SIGMOID_FUNC, compute_metrics_regression, IDENTITY_FUNC
+from train_eval_run.utils import compute_metrics_classification, SIGMOID_FUNC, \
+    compute_metrics_regression_vad, IDENTITY_FUNC
 from data_processing.data_loader import VADMapperName, GoEmotionsProcessor
 from models.model_baseline import BertForMultiLabelClassification
 from models.model_regression import BertForMultiDimensionRegression
@@ -61,7 +62,7 @@ class ModelArgs:
 
         for field_to_override, val in args_to_override.items():
             if field_to_override not in overridable_fields:
-                raise ValueError(f"Wrong Configuration: {args_to_override.keys()} are not overridable fields :(")
+                raise ValueError(f"Wrong Configuration: {field_to_override} is not overridable fields :(")
             setattr(self, field_to_override, val)
 
 
@@ -86,13 +87,13 @@ classic_multi_label_model_conf = ModelArgs("ge_classic_multi_label",
 classic_vad_regression_model_conf = ModelArgs("ge_regression_to_vad",
                                               BertForMultiDimensionRegression,
                                               GoEmotionsProcessor,
-                                              compute_metrics_regression,
+                                              compute_metrics_regression_vad,
                                               IDENTITY_FUNC,
                                               "vad",
                                               vad_mapper_name=VADMapperName.NRC,
                                               target_dim=3,
                                               hidden_layer_dim=400,
-                                              hidden_layers_count=3)
+                                              hidden_layers_count=1)
 # ---------------------------
 # We can add more ModelArgs instances here...
 # ---------------------------------------------------------------------
