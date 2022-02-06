@@ -61,7 +61,7 @@ class ModelArgs:
 
         for field_to_override, val in args_to_override.items():
             if field_to_override not in overridable_fields:
-                raise ValueError(f"Wrong Configuration: {args_to_override.keys()} are not overridable fields :(")
+                raise ValueError(f"Wrong Configuration: {field_to_override} is not overridable fields :(")
             setattr(self, field_to_override, val)
 
 
@@ -92,7 +92,7 @@ classic_vad_regression_model_conf = ModelArgs("ge_regression_to_vad",
                                               vad_mapper_name=VADMapperName.NRC,
                                               target_dim=3,
                                               hidden_layer_dim=400,
-                                              hidden_layers_count=3)
+                                              hidden_layers_count=1)
 # ---------------------------
 # We can add more ModelArgs instances here...
 # ---------------------------------------------------------------------
