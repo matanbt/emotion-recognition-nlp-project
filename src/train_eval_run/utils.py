@@ -27,8 +27,8 @@ def init_tensorboard_writer(path: str):
 
 def get_curr_time_for_filename():
     now = datetime.now()
-    # dd.mm.YY_H:M
-    now_string = now.strftime("%d.%m.%Y_%H:%M")
+    # dd_mm_YY_H_M
+    now_string = now.strftime("%d_%m_%Y_%H_%M")
     return now_string
 
 def set_seed(args):
