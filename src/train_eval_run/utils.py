@@ -57,16 +57,16 @@ def compute_metrics_classification(labels, preds):
     return results
 
 
-def compute_metrics_regression_vad(vads, preds):
-    assert len(preds) == len(vads)
+def compute_metrics_regression_vad(vads_target, vads_pred):
+    assert len(vads_pred) == len(vads_target)
     results = dict()
 
-    results["R_squared_score"] = r2_score(vads, preds)
-    results["mean_squared_error"] = mean_squared_error(vads, preds)
+    results["R_squared_score"] = r2_score(vads_target, vads_pred)
+    results["mean_squared_error"] = mean_squared_error(vads_target, vads_pred)
 
     for i, vad_letter in enumerate("vad"):
-        results[f"R_squared_score_{vad_letter}"] = r2_score(vads[:, i], preds[:, i])
-        results[f"mean_squared_error_{vad_letter}"] = mean_squared_error(vads[:, i], preds[:, i])
+        results[f"R_squared_score_{vad_letter}"] = r2_score(vads_target[:, i], vads_pred[:, i])
+        results[f"mean_squared_error_{vad_letter}"] = mean_squared_error(vads_target[:, i], vads_pred[:, i])
 
     return results
 
