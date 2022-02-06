@@ -96,7 +96,6 @@ def train(args,
                     args.gradient_accumulation_steps >= len(train_dataloader) == (step + 1)
             ):
                 # logs the training loss
-                logger.info(f"*** Training Loss in step #{global_step}: {loss.item()}")
                 tb_writer.add_scalars("training", {'loss': loss.item()}, global_step=global_step)
 
                 torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)

@@ -43,7 +43,7 @@ def main():
 
     # Initiate Tensorboard
     tb_writer_path = os.path.join(args.output_dir, f"tb_summary_for_{model_args.model_name}_model_"
-                                                   f"{get_curr_time_for_filename}")
+                                                   f"{get_curr_time_for_filename()}")
     tb_writer = init_tensorboard_writer(tb_writer_path)
 
     # --- Run ---
