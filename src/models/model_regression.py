@@ -18,19 +18,20 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
 
         self.bert = BertModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
+        self.act_func = nn.Sigmoid  # final activation function
+        self.final_act_func = nn.Sigmoid()  # final activation function
 
         if hidden_layers_count == 1:
             self.output_layer = nn.Linear(config.hidden_size, self.target_dim)
         else:
             # stack the hidden layers
             layers_lst = []
-            layers_lst += [nn.Linear(config.hidden_size, self.hidden_layers_dim), nn.ReLU()]
+            layers_lst += [nn.Linear(config.hidden_size, self.hidden_layers_dim), self.act_func()]
             for _ in range(self.hidden_layers_count - 2):
-                layers_lst += [nn.Linear(self.hidden_layers_dim, self.hidden_layers_dim), nn.ReLU()]
+                layers_lst += [nn.Linear(self.hidden_layers_dim, self.hidden_layers_dim), self.act_func()]
             layers_lst += [nn.Linear(self.hidden_layers_dim, self.target_dim)]
             self.output_layer = nn.Sequential(*layers_lst)
 
-        self.final_act_func = nn.Sigmoid()  # final activation function
         self.loss_func = nn.MSELoss() if (loss_func is None) else loss_func
 
         self.init_weights()
