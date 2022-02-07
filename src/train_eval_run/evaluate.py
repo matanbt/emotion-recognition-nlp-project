@@ -71,8 +71,8 @@ def evaluate(args,
     }
 
     if model_args.threshold is not None:
-        preds[preds > args.threshold] = 1
-        preds[preds <= args.threshold] = 0
+        preds[preds > model_args.threshold] = 1
+        preds[preds <= model_args.threshold] = 0
 
     result = model_args.compute_metrics(targets, preds)
     results.update(result)
