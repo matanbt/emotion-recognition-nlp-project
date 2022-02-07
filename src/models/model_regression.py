@@ -32,7 +32,8 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
             layers_lst += [nn.Linear(self.hidden_layers_dim, self.target_dim)]
             self.output_layer = nn.Sequential(*layers_lst)
 
-        self.loss_func = nn.MSELoss() if (loss_func is None) else loss_func
+        # self.loss_func = nn.MSELoss() if (loss_func is None) else loss_func
+        self.loss_func = nn.L1Loss() if (loss_func is None) else loss_func
 
         self.init_weights()
 
