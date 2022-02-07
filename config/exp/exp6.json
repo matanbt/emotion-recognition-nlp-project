@@ -1,6 +1,6 @@
 {
   "desc": "exp6 - test -5 LR (1 layer) ",
-  "task": "goemotions",
+  "task": "regression",
 
   "model_args": "regression",
   "model_args_override": {

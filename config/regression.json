@@ -1,6 +1,6 @@
 {
   "desc": "The regression model of GoEmotions, using VAD mappings",
-  "task": "goemotions",
+  "task": "regression",
 
   "model_args": "regression",
   "model_args_override": {

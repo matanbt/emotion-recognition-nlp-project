@@ -54,12 +54,16 @@ def evaluate(args,
             eval_loss += tmp_eval_loss.mean().item()
         nb_eval_steps += 1
 
+        curr_preds = model_args.func_on_model_output(logits)
+        if args.task == 'regression': curr_preds = curr_preds.cpu().numpy()
+        curr_targets = batch[model_args.target_name].detach().cpu().numpy()
+
         if preds is None:
-            preds = model_args.func_on_model_output(logits).cpu().numpy()
-            targets = batch[model_args.target_name].detach().cpu().numpy()
+            preds = curr_preds
+            targets = curr_targets
         else:
-            preds = np.append(preds,  model_args.func_on_model_output(logits).cpu().numpy(), axis=0)
-            targets = np.append(targets, batch[model_args.target_name].detach().cpu().numpy(), axis=0)
+            preds = np.append(preds,  curr_preds, axis=0)
+            targets = np.append(targets, curr_targets, axis=0)
 
     eval_loss = eval_loss / nb_eval_steps
     results = {

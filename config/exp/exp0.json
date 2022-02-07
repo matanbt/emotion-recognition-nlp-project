@@ -1,6 +1,6 @@
 {
   "desc": "The baseline model of GoEmotions, using the original labels (classic multi-label classification problem)",
-  "task": "goemotions",
+  "task": "classification",
 
   "model_args": "baseline",
   "model_args_override": {

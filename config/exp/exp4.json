@@ -1,6 +1,6 @@
 {
   "desc": "test with 1 layers & big LR ",
-  "task": "goemotions",
+  "task": "regression",
 
   "model_args": "regression",
   "model_args_override": {
