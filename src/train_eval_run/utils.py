@@ -45,19 +45,19 @@ def set_seed(args):
         torch.cuda.manual_seed_all(args.seed)
 
 
-def compute_metrics_classification(label_targets, label_preds):
+def compute_metrics_classification(label_targets, label_preds, name_suffix=''):
     assert len(label_preds) == len(label_targets)
     results = dict()
 
-    results["accuracy"] = accuracy_score(label_targets, label_preds)
-    results["macro_precision"], results["macro_recall"], results[
-        "macro_f1"], _ = precision_recall_fscore_support(
+    results[f"accuracy{name_suffix}"] = accuracy_score(label_targets, label_preds)
+    results[f"macro_precision{name_suffix}"], results[f"macro_recall{name_suffix}"], results[
+        f"macro_f1{name_suffix}"], _ = precision_recall_fscore_support(
         label_targets, label_preds, average="macro")
-    results["micro_precision"], results["micro_recall"], results[
-        "micro_f1"], _ = precision_recall_fscore_support(
+    results[f"micro_precision{name_suffix}"], results[f"micro_recall{name_suffix}"], results[
+        f"micro_f1{name_suffix}"], _ = precision_recall_fscore_support(
         label_targets, label_preds, average="micro")
-    results["weighted_precision"], results["weighted_recall"], results[
-        "weighted_f1"], _ = precision_recall_fscore_support(
+    results[f"weighted_precision{name_suffix}"], results[f"weighted_recall{name_suffix}"], results[
+        f"weighted_f1{name_suffix}"], _ = precision_recall_fscore_support(
         label_targets, label_preds, average="weighted")
 
     return results
@@ -74,27 +74,47 @@ def compute_metrics_regression_vad(vad_targets, vad_preds):
         results[f"R_squared_score_{vad_letter}"] = r2_score(vad_targets[:, i], vad_preds[:, i])
         results[f"mean_squared_error_{vad_letter}"] = mean_squared_error(vad_targets[:, i], vad_preds[:, i])
 
-    # Add the classification metrics by basic mapping back to labels
-    label_targets, label_preds = compute_labels_from_regression(vad_targets, vad_preds)
-    results.update(compute_metrics_classification(label_targets, label_preds))
+    # Add the classification metrics by mapping back to labels
+    label_targets = compute_labels_from_regression(vad_targets, 'euclidean')
+
+    # metrics - the metrics used for the mapping
+    # key - metric name, value - metric function or metric str identifier as described in sklearn.metrics.DistanceMetric
+    metrics = {
+        'euclidean': 'euclidean',
+        'manhattan': 'manhattan',
+        'chebyshev': 'chebyshev',
+        # 'minkowski': 'minkowski',
+        # 'wminkowski': 'wminkowski',
+        # 'seuclidean': 'seuclidean',
+        # 'mahalanobis': 'mahalanobis'
+        # TODO - we can add more metrics
+    }
+
+    for metric_name, metric in metrics.items():
+        label_preds = compute_labels_from_regression(vad_preds, metric)
+        results.update(compute_metrics_classification(label_targets, label_preds, f'_{metric_name}'))
 
     return results
 
 
-def compute_labels_from_regression(vad_targets, vad_preds):
+def compute_labels_from_regression(vads, metric):
     """
-        maps the predicted, target VADs to emotions and calculates the labels prediction
-        returns label_targets, label_preds
+        vads - list of vad points
+        Maps the VADs to emotions by NearestNeighbors with the specified metric
+        metric - metric function or metric str identifier as described in sklearn.metrics.DistanceMetric
+        returns labels idx list
     """
-    label_targets = nearest_point_search(vad_targets, NRC_IDX_TO_VAD)
-    label_preds = nearest_point_search(vad_preds, NRC_IDX_TO_VAD)
-    return label_targets, label_preds
 
-def nearest_point_search(points, possible_points):
+    labels = nearest_neighbor(vads, NRC_IDX_TO_VAD, metric)
+    return labels
+
+def nearest_neighbor(points, possible_points, metric):
     """
-    returns a np.ndarray where cell i = the index of the point from possible_points that is closest to points[i]
+    metric - metric function or metric str identifier as described in sklearn.metrics.DistanceMetric
+    returns a np.ndarray where cell i =
+    the index of the point from possible_points that is closest (by metric) to points[i]
     """
-    neigh = NearestNeighbors(n_neighbors=1)
+    neigh = NearestNeighbors(n_neighbors=1, metric=metric)
     neigh.fit(possible_points)
     return np.array(neigh.kneighbors(points, return_distance=False))[:, 0]
 
