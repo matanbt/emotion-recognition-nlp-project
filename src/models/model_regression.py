@@ -33,13 +33,9 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
             layers_lst += [nn.Linear(self.hidden_layers_dim, self.target_dim)]
             self.output_layer = nn.Sequential(*layers_lst)
 
-        # Loss choices (comment-out unused losses before experimenting):
-        self._MSE = nn.MSELoss()
-        self._RMSE = lambda preds, targets : torch.sqrt(self._MSE(preds, targets))
-        self._L1 = nn.L1Loss()
-
-        # Choose your loss here:
-        self.loss_func = self._RMSE if (loss_func is None) else loss_func
+        # Sigmoid layer + Binary Cross Entropy Loss (will be for every VAD dimension)
+        # https://pytorch.org/docs/stable/generated/torch.nn.BCEWithLogitsLoss.html
+        self.loss_func = nn.BCEWithLogitsLoss()
 
         self.init_weights()
 
@@ -75,7 +71,7 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
 
         pooled_output = self.dropout(pooled_output)
         logits = self.output_layer(pooled_output)
-        logits = self.final_act_func(logits)
+        # logits = self.final_act_func(logits) # we give up on the activation function (dealt by the loss)
 
         outputs = (logits,) + outputs[2:]  # adds hidden states and attention if they are here
 

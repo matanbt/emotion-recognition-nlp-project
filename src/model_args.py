@@ -88,7 +88,7 @@ classic_vad_regression_model_conf = ModelArgs("ge_regression_to_vad",
                                               BertForMultiDimensionRegression,
                                               GoEmotionsProcessor,
                                               compute_metrics_regression_vad,
-                                              IDENTITY_FUNC,
+                                              SIGMOID_FUNC,  # Our loss includes sigmoid, so we'll need to add it manulally later
                                               "vad",
                                               vad_mapper_name=VADMapperName.NRC,
                                               target_dim=3,
