@@ -83,7 +83,7 @@ def compute_metrics_regression_vad(vad_targets, vad_preds):
         'euclidean': 'euclidean',
         'manhattan': 'manhattan',
         'chebyshev': 'chebyshev',
-        # 'minkowski': 'minkowski',
+        'minkowski': 'minkowski',
         # 'wminkowski': 'wminkowski',
         # 'seuclidean': 'seuclidean',
         # 'mahalanobis': 'mahalanobis'
