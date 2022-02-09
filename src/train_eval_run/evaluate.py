@@ -55,8 +55,12 @@ def evaluate(args,
         nb_eval_steps += 1
 
         curr_preds = model_args.func_on_model_output(logits)
-        if args.task == 'regression': curr_preds = curr_preds.cpu().numpy()
-        curr_targets = batch[model_args.target_name].detach().cpu().numpy()
+
+        # Move Tensors to CPU (in case these are indeed tensors...)
+        if isinstance(curr_preds, torch.Tensor):
+            curr_preds = curr_preds.detach().cpu().numpy()
+        if isinstance(batch[model_args.target_name], torch.Tensor):
+            curr_targets = batch[model_args.target_name].detach().cpu().numpy()
 
         if preds is None:
             preds = curr_preds
