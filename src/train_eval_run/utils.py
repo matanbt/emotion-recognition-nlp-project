@@ -74,9 +74,10 @@ def compute_metrics_regression_vad(vad_targets, vad_preds):
         results[f"R_squared_score_{vad_letter}"] = r2_score(vad_targets[:, i], vad_preds[:, i])
         results[f"mean_squared_error_{vad_letter}"] = mean_squared_error(vad_targets[:, i], vad_preds[:, i])
 
-    # Add the classification metrics by mapping back to labels
+    # Hack to add the classification metrics by mapping back to labels
     label_targets = compute_labels_from_regression(vad_targets, 'euclidean')
 
+    # [Commented-Out]: This is too noisy for the analysis, and doesn't seem to have affect.
     # metrics - the metrics used for the mapping
     # key - metric name, value - metric function or metric str identifier as described in sklearn.metrics.DistanceMetric
     metrics = {
@@ -88,6 +89,7 @@ def compute_metrics_regression_vad(vad_targets, vad_preds):
         # 'seuclidean': 'seuclidean',
         # 'mahalanobis': 'mahalanobis'
         # TODO - we can add more metrics
+        'CELoss': lambda p1, p2: torch.nn.BCELoss(p1, p2)
         # 'my_euclidean': lambda p1, p2: np.sqrt(np.sum((p1 - p2)**2))  # custom metric example, same as 'euclidean'
     }
 
