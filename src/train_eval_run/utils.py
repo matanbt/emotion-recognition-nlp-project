@@ -88,6 +88,7 @@ def compute_metrics_regression_vad(vad_targets, vad_preds):
         # 'seuclidean': 'seuclidean',
         # 'mahalanobis': 'mahalanobis'
         # TODO - we can add more metrics
+        # 'my_euclidean': lambda p1, p2: np.sqrt(np.sum((p1 - p2)**2))  # custom metric example, same as 'euclidean'
     }
 
     for metric_name, metric in metrics.items():
