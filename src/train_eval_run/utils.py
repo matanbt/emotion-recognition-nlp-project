@@ -81,9 +81,9 @@ def compute_metrics_regression_vad(vad_targets, vad_preds):
     # key - metric name, value - metric function or metric str identifier as described in sklearn.metrics.DistanceMetric
     metrics = {
         'euclidean': 'euclidean',
-        'manhattan': 'manhattan',
-        'chebyshev': 'chebyshev',
-        'minkowski': 'minkowski',
+        # 'manhattan': 'manhattan',
+        # 'chebyshev': 'chebyshev',
+        # 'minkowski': 'minkowski',
         # 'wminkowski': 'wminkowski',
         # 'seuclidean': 'seuclidean',
         # 'mahalanobis': 'mahalanobis'
