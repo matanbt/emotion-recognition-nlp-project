@@ -70,9 +70,10 @@ def compute_metrics_regression_vad(vad_targets, vad_preds):
     results["R_squared_score"] = r2_score(vad_targets, vad_preds)
     results["mean_squared_error"] = mean_squared_error(vad_targets, vad_preds)
 
-    for i, vad_letter in enumerate("vad"):
-        results[f"R_squared_score_{vad_letter}"] = r2_score(vad_targets[:, i], vad_preds[:, i])
-        results[f"mean_squared_error_{vad_letter}"] = mean_squared_error(vad_targets[:, i], vad_preds[:, i])
+    # [COMMENTED-OUT] Too noisy.
+    # for i, vad_letter in enumerate("vad"):
+    #     results[f"R_squared_score_{vad_letter}"] = r2_score(vad_targets[:, i], vad_preds[:, i])
+    #     results[f"mean_squared_error_{vad_letter}"] = mean_squared_error(vad_targets[:, i], vad_preds[:, i])
 
     # Add the classification metrics by mapping back to labels
     label_targets = compute_labels_from_regression(vad_targets, 'euclidean')
@@ -81,7 +82,7 @@ def compute_metrics_regression_vad(vad_targets, vad_preds):
     # key - metric name, value - metric function or metric str identifier as described in sklearn.metrics.DistanceMetric
     metrics = {
         'euclidean': 'euclidean',
-        # 'manhattan': 'manhattan',
+        'manhattan': 'manhattan',
         # 'chebyshev': 'chebyshev',
         # 'minkowski': 'minkowski',
         # 'wminkowski': 'wminkowski',

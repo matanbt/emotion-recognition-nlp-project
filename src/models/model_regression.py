@@ -39,7 +39,7 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
         self._L1 = nn.L1Loss()
 
         # Choose your loss here:
-        self.loss_func = self._RMSE if (loss_func is None) else loss_func
+        self.loss_func = self._L1 if (loss_func is None) else loss_func
 
         self.init_weights()
 
