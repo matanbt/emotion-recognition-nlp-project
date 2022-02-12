@@ -247,9 +247,10 @@ class GoEmotionsProcessor(BaseProcessor):
         _reducer = lambda a, b: (a + b) / 2
         _scaler = lambda a: (a - 1) / 8
 
-        result['v'] = _scaler(_reducer(example['Valence1'], example['Valence2']))
-        result['a'] = _scaler(_reducer(example['Arousal1'], example['Arousal2']))
-        result['d'] = 0.5  # dominance is neutral
+        result['vad'] = []
+        result['vad'].append(_scaler(_reducer(example['Valence1'], example['Valence2'])))
+        result['vad'].append(_scaler(_reducer(example['Arousal1'], example['Arousal2'])))
+        result['vad'].append(0.5)  # dominance is neutral
 
         return result
 
