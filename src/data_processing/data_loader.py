@@ -99,6 +99,7 @@ class GoEmotionsProcessor(BaseProcessor):
                  tokenizer,
                  max_length: int,
                  remove_multi_lables=True, # TODO this is a temporary arg that should be removed! multi-labels should be dealt with !
+                 add_external_training=True,  # TODO This is another experimental parameter
                  vad_mapper_name: VADMapperName = None):
         """
             args - full config
@@ -114,6 +115,7 @@ class GoEmotionsProcessor(BaseProcessor):
         self.tokenizer = tokenizer
         self.max_length = max_length
         self.with_vad = vad_mapper_name is not None
+        self.add_external_training = add_external_training
 
         # Fetches labels list
         self.labels_list = GoEmotionsProcessor.get_labels_list(args)
@@ -142,17 +144,24 @@ class GoEmotionsProcessor(BaseProcessor):
         self.processed_dataset = \
             self.processed_dataset.map(self._hf_batch_mapper__one_hot_label, batched=True)
 
-        # Adds 'attention_mask', 'input_ids', 'token_type_ids' columns
-        self.processed_dataset = \
-            data_utils.add_tokenization_features(self.processed_dataset,
-                                                 self.tokenizer,
-                                                 self.max_length)
-
         if self.with_vad:
             # Adds 'vad' column
             self.processed_dataset = \
                 self.processed_dataset.map(self._hf_batch_mapper__vad_mapping, batched=True)
 
+        if self.add_external_training:
+            # adds more VAD example to training :)
+            external_ds = datasets.load_dataset('csv', data_files={
+                                'train': 'data/fb-va/dataset-fb-valence-arousal-anon.csv'})
+            external_ds = external_ds.map(self._hf_mapper__add_vad_to_fb_va)
+            self.processed_dataset['train'] = datasets.concatenate_datasets([self.processed_dataset['train'],
+                                                                             external_ds['train']])
+
+        # Adds 'attention_mask', 'input_ids', 'token_type_ids' columns
+        self.processed_dataset = \
+            data_utils.add_tokenization_features(self.processed_dataset,
+                                                 self.tokenizer,
+                                                 self.max_length)
         # sets the relevant columns as tensors
         self._cast_to_tensors()
 
@@ -229,6 +238,20 @@ class GoEmotionsProcessor(BaseProcessor):
     @staticmethod
     def _hf_filterer__remove_multi_label(example):
         return len(example['labels']) == 1
+
+    @staticmethod
+    def _hf_mapper__add_vad_to_fb_va(example):
+        result = {}
+        result['text'] = example['Anonymized Message']
+
+        _reducer = lambda a, b: (a + b) / 2
+        _scaler = lambda a: (a - 1) / 8
+
+        result['v'] = _scaler(_reducer(example['Valence1'], example['Valence2']))
+        result['a'] = _scaler(_reducer(example['Arousal1'], example['Arousal2']))
+        result['d'] = 0.5  # dominance is neutral
+
+        return result
 
 
 # ---------------------------------------------------------------------
