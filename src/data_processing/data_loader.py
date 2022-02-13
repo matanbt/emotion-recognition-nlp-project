@@ -243,6 +243,7 @@ class GoEmotionsProcessor(BaseProcessor):
     def _hf_mapper__add_vad_to_fb_va(example):
         result = {}
         result['text'] = example['Anonymized Message']
+        result['one_hot_labels'] = [0.0] * 28  # dummy labeling
 
         _reducer = lambda a, b: (a + b) / 2
         _scaler = lambda a: (a - 1) / 8
