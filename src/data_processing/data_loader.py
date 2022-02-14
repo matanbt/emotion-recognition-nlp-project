@@ -161,11 +161,14 @@ class GoEmotionsProcessor(BaseProcessor):
 
         if self.add_external_training_eb:
             # adds more VAD example to training :) (EmoBank)
+            AMOUNT_OF_EXAMPLES_TO_ADD = 5000
             external_ds = datasets.load_dataset('csv', data_files={
                                 'train': 'data/emobank/emobank.csv'})
-            external_ds = external_ds.map(self._hf_mapper__add_vad_to_eb_va)
+            external_ds = external_ds.filter(lambda example: example['split'] == 'train')
+            external_ds = external_ds['train'].select(range(AMOUNT_OF_EXAMPLES_TO_ADD))
+            external_ds = external_ds.map(self._hf_mapper__add_vad_to_eb_vad)
             self.processed_dataset['train'] = datasets.concatenate_datasets([self.processed_dataset['train'],
-                                                                             external_ds['train']])
+                                                                             external_ds])
 
         # Adds 'attention_mask', 'input_ids', 'token_type_ids' columns
         self.processed_dataset = \
@@ -266,7 +269,7 @@ class GoEmotionsProcessor(BaseProcessor):
         return result
 
     @staticmethod
-    def _hf_mapper__add_vad_to_eb_va(example):
+    def _hf_mapper__add_vad_to_eb_vad(example):
         result = {}
         result['text'] = example['text']
         result['one_hot_labels'] = [0.0] * 28  # dummy labeling
