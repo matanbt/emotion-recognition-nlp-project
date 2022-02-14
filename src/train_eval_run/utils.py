@@ -96,6 +96,13 @@ def compute_metrics_regression_vad(vad_targets, vad_preds):
         label_preds = compute_labels_from_regression(vad_preds, metric)
         results.update(compute_metrics_classification(label_targets, label_preds, f'_{metric_name}'))
 
+    # Try VA metric
+    va_preds = vad_preds[:, :2]
+    for metric_name, metric in metrics.items():
+        label_preds = nearest_neighbor(va_preds, NRC_IDX_TO_VA, metric)
+        results.update(
+            compute_metrics_classification(label_targets, label_preds, f'_va_{metric_name}'))
+
     return results
 
 
@@ -153,6 +160,34 @@ NRC_VAD_TO_IDX = {(0.969, 0.583, 0.726): 0,
                   (0.875, 0.875, 0.562): 26,
                   (0.469, 0.184, 0.357): 27}
 
+NRC_IDX_TO_VA = [(0.969, 0.583),
+                  (0.929, 0.837),
+                  (0.167, 0.865),
+                  (0.167, 0.718),
+                  (0.854, 0.46),
+                  (0.635, 0.469),
+                  (0.255, 0.667),
+                  (0.75, 0.755),
+                  (0.896, 0.692),
+                  (0.115, 0.49),
+                  (0.085, 0.551),
+                  (0.052, 0.775),
+                  (0.143, 0.685),
+                  (0.896, 0.684),
+                  (0.073, 0.84),
+                  (0.885, 0.441),
+                  (0.07, 0.64),
+                  (0.98, 0.824),
+                  (1.0, 0.519),
+                  (0.163, 0.915),
+                  (0.949, 0.565),
+                  (0.729, 0.634),
+                  (0.554, 0.51),
+                  (0.844, 0.278),
+                  (0.103, 0.673),
+                  (0.052, 0.288),
+                  (0.875, 0.875),
+                  (0.469, 0.184)]
 NRC_IDX_TO_VAD = [(0.969, 0.583, 0.726),
                   (0.929, 0.837, 0.803),
                   (0.167, 0.865, 0.657),
@@ -181,3 +216,4 @@ NRC_IDX_TO_VAD = [(0.969, 0.583, 0.726),
                   (0.052, 0.288, 0.164),
                   (0.875, 0.875, 0.562),
                   (0.469, 0.184, 0.357)]
+
