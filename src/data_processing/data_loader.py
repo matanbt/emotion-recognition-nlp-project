@@ -99,7 +99,8 @@ class GoEmotionsProcessor(BaseProcessor):
                  tokenizer,
                  max_length: int,
                  remove_multi_lables=True, # TODO this is a temporary arg that should be removed! multi-labels should be dealt with !
-                 add_external_training=True,  # TODO This is another experimental parameter
+                 add_external_training_fb=False,  # TODO This is another experimental parameter
+                 add_external_training_eb=True,  # TODO This is another experimental parameter
                  vad_mapper_name: VADMapperName = None):
         """
             args - full config
@@ -115,7 +116,8 @@ class GoEmotionsProcessor(BaseProcessor):
         self.tokenizer = tokenizer
         self.max_length = max_length
         self.with_vad = vad_mapper_name is not None
-        self.add_external_training = add_external_training
+        self.add_external_training_fb = add_external_training_fb
+        self.add_external_training_eb = add_external_training_eb
 
         # Fetches labels list
         self.labels_list = GoEmotionsProcessor.get_labels_list(args)
@@ -149,11 +151,19 @@ class GoEmotionsProcessor(BaseProcessor):
             self.processed_dataset = \
                 self.processed_dataset.map(self._hf_batch_mapper__vad_mapping, batched=True)
 
-        if self.add_external_training:
-            # adds more VAD example to training :)
+        if self.add_external_training_fb:
+            # adds more VAD example to training :) (Facebook bank)
             external_ds = datasets.load_dataset('csv', data_files={
                                 'train': 'data/fb-va/dataset-fb-valence-arousal-anon.csv'})
             external_ds = external_ds.map(self._hf_mapper__add_vad_to_fb_va)
+            self.processed_dataset['train'] = datasets.concatenate_datasets([self.processed_dataset['train'],
+                                                                             external_ds['train']])
+
+        if self.add_external_training_eb:
+            # adds more VAD example to training :) (EmoBank)
+            external_ds = datasets.load_dataset('csv', data_files={
+                                'train': 'data/emobank/emobank.csv'})
+            external_ds = external_ds.map(self._hf_mapper__add_vad_to_eb_va)
             self.processed_dataset['train'] = datasets.concatenate_datasets([self.processed_dataset['train'],
                                                                              external_ds['train']])
 
@@ -252,6 +262,21 @@ class GoEmotionsProcessor(BaseProcessor):
         result['vad'].append(_scaler(_reducer(example['Valence1'], example['Valence2'])))
         result['vad'].append(_scaler(_reducer(example['Arousal1'], example['Arousal2'])))
         result['vad'].append(0.5)  # dominance is neutral
+
+        return result
+
+    @staticmethod
+    def _hf_mapper__add_vad_to_eb_va(example):
+        result = {}
+        result['text'] = example['text']
+        result['one_hot_labels'] = [0.0] * 28  # dummy labeling
+
+        _scaler = lambda a: (a - 1) / 4
+
+        result['vad'] = []
+        result['vad'].append(_scaler(example['V']))
+        result['vad'].append(_scaler(example['A']))
+        result['vad'].append(_scaler(example['D']))
 
         return result
 
