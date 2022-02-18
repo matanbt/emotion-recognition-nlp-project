@@ -100,7 +100,7 @@ class GoEmotionsProcessor(BaseProcessor):
                  max_length: int,
                  remove_multi_lables=True, # TODO this is a temporary arg that should be removed! multi-labels should be dealt with !
                  add_external_training_fb=False,  # TODO This is another experimental parameter
-                 add_external_training_eb=True,  # TODO This is another experimental parameter
+                 add_external_training_eb=False,  # TODO This is another experimental parameter
                  vad_mapper_name: VADMapperName = None):
         """
             args - full config
