@@ -106,7 +106,7 @@ def compute_metrics_regression_vad(vad_targets, vad_preds):
     return results
 
 
-def compute_labels_from_regression(vads, metric):
+def compute_labels_from_regression(vads, metric='euclidean'):
     """
         vads - list of vad points
         Maps the VADs to emotions by NearestNeighbors with the specified metric

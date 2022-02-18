@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from transformers import BertPreTrainedModel, BertModel
-
+from train_eval_run.utils import compute_labels_from_regression
 
 class BertForMultiDimensionRegression(BertPreTrainedModel):
 
@@ -60,6 +60,7 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
             vad - if vad argument is present, is overrides outputs_target
         """
         output_targets = output_targets if vad is None else vad
+        one_hot_labels = kwargs.get('one_hot_labels')
 
         outputs = self.bert(
             input_ids,
@@ -76,11 +77,23 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
         pooled_output = self.dropout(pooled_output)
         logits = self.output_layer(pooled_output)
         logits = self.final_act_func(logits)
+        # TODO : on logits - compute_labels_from_regression(logits.to_numpy())
+        labels_predicted = compute_labels_from_regression(logits.detach().cpu().numpy())
+
+        wrong_preds = []
+        for i in range(logits.shape[0]):
+            wrong_preds.append(one_hot_labels[i].argmax() != labels_predicted[i])
 
         outputs = (logits,) + outputs[2:]  # adds hidden states and attention if they are here
 
         if output_targets is not None:
             loss = self.loss_func(logits, output_targets)
             outputs = (loss,) + outputs
+
+            # --- Here we penalty wrong prediction ---
+            for i, is_wrong in enumerate(wrong_preds):
+                if is_wrong:
+                    loss += self.loss_func(logits[i], output_targets[i]) * (1 / logits.shape[0]) # we penalty the wrong ones one more time!
+            # ---- End of penalty ---
 
         return outputs  # (loss), logits, (hidden_states), (attentions)
