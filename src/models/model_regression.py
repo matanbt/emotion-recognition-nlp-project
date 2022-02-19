@@ -87,13 +87,16 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
         outputs = (logits,) + outputs[2:]  # adds hidden states and attention if they are here
 
         if output_targets is not None:
-            loss = self.loss_func(logits, output_targets)
+            # loss = self.loss_func(logits, output_targets)
+            loss = 0
             outputs = (loss,) + outputs
 
             # --- Here we penalty wrong prediction ---
             for i, is_wrong in enumerate(wrong_preds):
                 if is_wrong:
-                    loss += self.loss_func(logits[i], output_targets[i]) * (1 / logits.shape[0]) # we penalty the wrong ones one more time!
+                    # loss += self.loss_func(logits[i], output_targets[i]) * (1 / logits.shape[0]) # we penalty the wrong ones one more time!
+                    loss += self.loss_func(logits[i], output_targets[i]) # RE REGRESS ONLY WRONG PREDS!
             # ---- End of penalty ---
 
+        loss *= 1 / sum(wrong_preds)  # RE REGRESS ONLY WRONG PREDS!
         return outputs  # (loss), logits, (hidden_states), (attentions)
