@@ -36,7 +36,7 @@ def main():
 
     logger.info(f"Configuration file: {config_path}")
     logger.info("Training/evaluation parameters {}".format(args))
-    logger.info(f"@Commit: {utils.get_git_revision_short_hash}")
+    logger.info(f"@Commit: {get_git_revision_short_hash}")
 
     # Choose model args
     assert args.model_args in model_choices, \
