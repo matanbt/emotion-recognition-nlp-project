@@ -41,7 +41,7 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
         # Choose your loss here:
         self.loss_func = self._L1 if (loss_func is None) else loss_func
         self.ce = torch.nn.CrossEntropyLoss() # penalty
-        self.lambda_param = 0.1 # weight of the CE, should be tuned later
+        self.lambda_param = kwargs.get('lambda_param', 0.5) # weight of the CE, should be tuned later
 
         self.init_weights()
 

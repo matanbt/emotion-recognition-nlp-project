@@ -45,6 +45,7 @@ class ModelArgs:
     target_dim: int = None
     hidden_layers_count: int = None
     hidden_layer_dim: int = None
+    lambda_param: float = None
 
     # Optional (classification oriented)
     threshold: float = None

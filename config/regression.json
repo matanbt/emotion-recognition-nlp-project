@@ -4,7 +4,8 @@
 
   "model_args": "regression",
   "model_args_override": {
-    "target_dim": 3
+    "target_dim": 3,
+    "lambda_param": 0.2
   },
 
   "data_dir": "data/goemotions",
