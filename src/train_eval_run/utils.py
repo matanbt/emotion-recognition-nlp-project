@@ -222,3 +222,5 @@ NRC_IDX_TO_VAD = [(0.969, 0.583, 0.726),
                   (0.875, 0.875, 0.562),
                   (0.469, 0.184, 0.357)]
 
+def get_idx_to_vad_tensor():
+    return torch.tensor(NRC_IDX_TO_VAD)

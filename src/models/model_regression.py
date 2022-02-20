@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from transformers import BertPreTrainedModel, BertModel
-from train_eval_run.utils import compute_labels_from_regression
+from train_eval_run.utils import compute_labels_from_regression, get_idx_to_vad_tensor
 
 class BertForMultiDimensionRegression(BertPreTrainedModel):
 
@@ -40,7 +40,8 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
 
         # Choose your loss here:
         self.loss_func = self._L1 if (loss_func is None) else loss_func
-        self.nll = torch.nn.NLLLoss() # penalty
+        self.ce = torch.nn.CrossEntropyLoss() # penalty
+        self.lambda_param = 0.1 # weight of the CE, should be tuned later
 
         self.init_weights()
 
@@ -78,19 +79,26 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
         pooled_output = self.dropout(pooled_output)
         logits = self.output_layer(pooled_output)
         logits = self.final_act_func(logits)
-        # TODO : on logits - compute_labels_from_regression(logits.to_numpy())
-        labels_predicted = compute_labels_from_regression(logits.detach().cpu().numpy())
+        # Simply MAE each predicted-VAD with 28 mapped-VAD --> yields logits to each example. --> CE
+        # labels_predicted = compute_labels_from_regression(logits.detach().cpu().numpy())
+        # one_hot_labels_preds = torch.nn.functional.one_hot(torch.tensor(labels_predicted), num_classes=28)
 
-        one_hot_labels_preds = torch.nn.functional.one_hot(torch.tensor(labels_predicted), num_classes=28)
-        targets = one_hot_labels.argmax(dim=-1)
+        # getting VAD-space-distance from predictions to target-labels
+        regr_targets = get_idx_to_vad_tensor().unsqueeze(dim=0).to(logits.device) # VAD targets [28,3] --> [1,28,3]
+        regr_logits = logits.unsqueeze(dim=1)  # logits [N,3] --> [N,1,3]
+        dist = torch.sub(regr_logits, regr_targets)  # broadcasted substraction
+        class_logits = torch.linalg.vector_norm(dist.float(), dim=-1, ord=1) * -1  # [N, 28] # we change the sign, because the smaller the value the better much it is, the higher score # manhattan distane
+
+        # ---
+        class_targets = one_hot_labels.argmax(dim=-1)
 
         outputs = (logits,) + outputs[2:]  # adds hidden states and attention if they are here
 
         if output_targets is not None:
-            loss = self.loss_func(logits, output_targets)
+            loss = self.loss_func(logits, output_targets) * (1 - self.lambda_param)
 
             # --- Here we penalty wrong prediction ---
-            loss += loss * self.nll(one_hot_labels_preds.float(), targets)
+            loss += self.ce(class_logits, class_targets) * self.lambda_param
             # for i, is_wrong in enumerate(wrong_preds):
             #     if is_wrong:
             #         # loss += self.loss_func(logits[i], output_targets[i]) * (1 / logits.shape[0]) # we penalty the wrong ones one more time!
