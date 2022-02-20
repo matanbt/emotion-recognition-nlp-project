@@ -40,6 +40,7 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
 
         # Choose your loss here:
         self.loss_func = self._L1 if (loss_func is None) else loss_func
+        self.nll = torch.nn.NLLLoss() # penalty
 
         self.init_weights()
 
@@ -80,23 +81,22 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
         # TODO : on logits - compute_labels_from_regression(logits.to_numpy())
         labels_predicted = compute_labels_from_regression(logits.detach().cpu().numpy())
 
-        wrong_preds = []
-        for i in range(logits.shape[0]):
-            wrong_preds.append(one_hot_labels[i].argmax() != labels_predicted[i])
+        one_hot_labels_preds = torch.nn.functional.one_hot(torch.tensor(labels_predicted), num_classes=28)
+        targets = one_hot_labels.argmax(dim=-1)
 
         outputs = (logits,) + outputs[2:]  # adds hidden states and attention if they are here
 
         if output_targets is not None:
-            # loss = self.loss_func(logits, output_targets)
-            loss = 0
-            outputs = (loss,) + outputs
+            loss = self.loss_func(logits, output_targets)
 
             # --- Here we penalty wrong prediction ---
-            for i, is_wrong in enumerate(wrong_preds):
-                if is_wrong:
-                    # loss += self.loss_func(logits[i], output_targets[i]) * (1 / logits.shape[0]) # we penalty the wrong ones one more time!
-                    loss += self.loss_func(logits[i], output_targets[i]) # RE REGRESS ONLY WRONG PREDS!
+            loss += loss * self.nll(one_hot_labels_preds.float(), targets)
+            # for i, is_wrong in enumerate(wrong_preds):
+            #     if is_wrong:
+            #         # loss += self.loss_func(logits[i], output_targets[i]) * (1 / logits.shape[0]) # we penalty the wrong ones one more time!
+            #         loss += self.loss_func(logits[i], output_targets[i]) # RE REGRESS ONLY WRONG PREDS!
             # ---- End of penalty ---
 
-        loss *= 1 / sum(wrong_preds)  # RE REGRESS ONLY WRONG PREDS!
+            outputs = (loss,) + outputs
+
         return outputs  # (loss), logits, (hidden_states), (attentions)
