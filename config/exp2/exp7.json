@@ -21,6 +21,8 @@
 
   "max_seq_len": 100,
 
+  "with_noise": true,
+
   "evaluate_test_during_training": false,
   "eval_all_checkpoints": true,
   "do_train": true,

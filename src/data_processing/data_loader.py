@@ -4,6 +4,7 @@ from datasets import Dataset
 from . import data_utils
 from datasets.dataset_dict import DatasetDict
 import logging
+import numpy as np
 
 from enum import Enum
 
@@ -116,6 +117,7 @@ class GoEmotionsProcessor(BaseProcessor):
         self.tokenizer = tokenizer
         self.max_length = max_length
         self.with_vad = vad_mapper_name is not None
+        self.with_noise = args.with_noise
         self.add_external_training_fb = add_external_training_fb
         self.add_external_training_eb = add_external_training_eb
 
@@ -233,7 +235,9 @@ class GoEmotionsProcessor(BaseProcessor):
         examples['vad'] = []
         for label_idx in examples['labels']:
             # label_idx - list of labels corresponding to the given input
-            examples['vad'].append(self.vad_mapper.map_go_emotions_labels(label_idx[0]))
+            _vad = self.vad_mapper.map_go_emotions_labels(label_idx[0])
+            _vad = [elem + np.random.normal(loc=0.0, scale=0.005) for elem in _vad]  # TODO actually this is another hyperparam to tune
+            examples['vad'].append(_vad)
             # TODO overcome this assumption: for now we assume we have one label per example
         return examples
 
