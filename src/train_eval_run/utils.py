@@ -1,6 +1,7 @@
 import os
 import random
 import logging
+import subprocess
 from datetime import datetime
 
 from torch.utils.tensorboard import SummaryWriter
@@ -43,6 +44,10 @@ def set_seed(args):
     torch.manual_seed(args.seed)
     if not args.no_cuda and torch.cuda.is_available():
         torch.cuda.manual_seed_all(args.seed)
+
+
+def get_git_revision_short_hash() -> str:
+    return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('ascii').strip()
 
 
 def compute_metrics_classification(label_targets, label_preds, name_suffix=''):

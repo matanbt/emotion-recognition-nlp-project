@@ -9,7 +9,7 @@ from train_eval_run import run_model
 from train_eval_run.utils import init_logger, init_tensorboard_writer
 
 from model_args import model_choices
-from train_eval_run.utils import get_curr_time_for_filename
+from train_eval_run.utils import get_curr_time_for_filename, get_git_revision_short_hash
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +36,7 @@ def main():
 
     logger.info(f"Configuration file: {config_path}")
     logger.info("Training/evaluation parameters {}".format(args))
+    logger.info(f"@Commit: {get_git_revision_short_hash}")
 
     # Choose model args
     assert args.model_args in model_choices, \
