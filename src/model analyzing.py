@@ -166,3 +166,17 @@ print(len(set(emo[:, 1])))  # 28
 print(len(set(emo[:, 2])))  # 28
 
 # %%
+# find min distance between emotions in each dim of the vad
+
+def print_min_distance(dim, dim_name):
+    # prints the min- not zero distance between vals in dimention = dim
+
+    distances = np.abs(emo[:, dim, np.newaxis] - emo[np.newaxis, :, dim])
+    # set 0 distances to infinity
+    distances[distances == 0] = 2
+    print(f"{dim_name} min distance = {np.min(distances)}")
+
+
+print_min_distance(0, 'V')
+print_min_distance(1, 'A')
+print_min_distance(2, 'D')
