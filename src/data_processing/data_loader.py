@@ -118,6 +118,7 @@ class GoEmotionsProcessor(BaseProcessor):
         self.max_length = max_length
         self.with_vad = vad_mapper_name is not None
         self.with_noise = args.with_noise
+        self.noise_param = None if not self.with_noise else args.noise_param
         self.add_external_training_fb = add_external_training_fb
         self.add_external_training_eb = add_external_training_eb
 
@@ -232,11 +233,17 @@ class GoEmotionsProcessor(BaseProcessor):
     # --- Hugging-face mappers --- (to be used in "dataset.map()" invocations)
 
     def _hf_batch_mapper__vad_mapping(self, examples):
+        V_MIN_DISTANCE = 0.0029
+        A_MIN_DISTANCE = 0.001
+        D_MIN_DISTANCE = 0.005
+
         examples['vad'] = []
         for label_idx in examples['labels']:
             # label_idx - list of labels corresponding to the given input
             _vad = self.vad_mapper.map_go_emotions_labels(label_idx[0])
-            _vad = [elem + np.random.normal(loc=0.0, scale=0.005) for elem in _vad]  # TODO actually this is another hyperparam to tune
+            _vad = _vad + np.random.normal(loc=[0.0, 0.0, 0.0], scale=[V_MIN_DISTANCE * self.noise_param,
+                                                                       A_MIN_DISTANCE * self.noise_param,
+                                                                       D_MIN_DISTANCE * self.noise_param])
             examples['vad'].append(_vad)
             # TODO overcome this assumption: for now we assume we have one label per example
         return examples
