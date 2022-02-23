@@ -241,9 +241,10 @@ class GoEmotionsProcessor(BaseProcessor):
         for label_idx in examples['labels']:
             # label_idx - list of labels corresponding to the given input
             _vad = self.vad_mapper.map_go_emotions_labels(label_idx[0])
-            _vad = _vad + np.random.normal(loc=[0.0, 0.0, 0.0], scale=[V_MIN_DISTANCE * self.noise_param,
-                                                                       A_MIN_DISTANCE * self.noise_param,
-                                                                       D_MIN_DISTANCE * self.noise_param])
+            if self.with_noise:
+                _vad = _vad + np.random.normal(loc=[0.0, 0.0, 0.0], scale=[V_MIN_DISTANCE * self.noise_param,
+                                                                           A_MIN_DISTANCE * self.noise_param,
+                                                                           D_MIN_DISTANCE * self.noise_param])
             examples['vad'].append(_vad)
             # TODO overcome this assumption: for now we assume we have one label per example
         return examples
