@@ -11,11 +11,13 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
                  target_dim=3,
                  hidden_layers_count=1,
                  hidden_layer_dim=400,
+                 pool_mode='cls',
                  **kwargs):
         super().__init__(config)
         self.target_dim = target_dim
         self.hidden_layers_count = hidden_layers_count
         self.hidden_layers_dim = hidden_layer_dim
+        self.pool_mode = pool_mode
 
         self.bert = BertModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
@@ -69,9 +71,20 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
             head_mask=head_mask,
             inputs_embeds=inputs_embeds,
         )
-        # outputs[0] : the whole last-hidden-layer of BERT (batch_size, sequence_length, hidden_size)
-        # outputs[1] : [CLS] token in last hidden layer
-        pooled_output = outputs[1]
+        # outputs.last_hidden_state : the whole last-hidden-layer of BERT (batch_size, sequence_length, hidden_size)
+        # outputs.pooler_output : [CLS] token in last hidden layer
+        pooled_output = None
+
+        if self.pool_mode == 'cls':
+            pooled_output = outputs.pooler_output
+        elif self.pool_mode == 'last':
+            pooled_output = outputs.last_hidden_state[:, -1, :]
+        elif self.pool_mode == 'sum':
+            pooled_output = outputs.last_hidden_state.sum(axis=1)
+        elif self.pool_mode == 'mean':
+            pooled_output = outputs.last_hidden_state.mean(axis=1)
+        else:
+            raise ValueError(f"Given pool_mode `{self.pool_mode}` is invalid.")
 
         pooled_output = self.dropout(pooled_output)
         logits = self.output_layer(pooled_output)
