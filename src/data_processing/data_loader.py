@@ -19,6 +19,9 @@ logger = logging.getLogger(__name__)
 class VADMapperName(Enum):
     # Note: each VADMapperName should be handled in VADMapper.__init__
     NRC = "Mapping based on NRC lexicon"
+    SCALED_NRC_1 = "Mapping by NRC, scaled with QuantileTransformer(n_quantiles=28): uniform dist all the way.."
+    SCALED_NRC_2 = "Mapping by NRC, scaled with QuantileTransformer(n_quantiles=15)"
+    SCALED_NRC_3 = "Mapping by NRC, scaled with QuantileTransformer(n_quantiles=21)"
 
 
 class VADMapper:
@@ -36,18 +39,24 @@ class VADMapper:
 
         if vad_mapper_name is VADMapperName.NRC:
             logger.info("VADMapper using NRC for VAD mappings.")
-            df_nrc = pd.read_csv(args.nrc_vad_mapping_path, sep="\t",
-                                 names=['word', 'v', 'a', 'd'])
-            df_nrc = df_nrc[df_nrc["word"].apply(lambda word: word in labels_names_list)]
-
-            assert len(df_nrc) == 28
-
-            df_nrc.set_index('word', inplace=True)
-
-            # Sort emotions by labels_names_list order
-            df_nrc = df_nrc.reindex(labels_names_list)
-
+            df_nrc = data_utils.get_nrc_vad_mapping(args.nrc_vad_mapping_path, labels_names_list)
             self.label_idx_to_vad_mapping = df_nrc.values.tolist()
+
+        elif vad_mapper_name in (VADMapperName.SCALED_NRC_1, VADMapperName.SCALED_NRC_2):
+            from sklearn.preprocessing import QuantileTransformer
+            n_quantiles = 28  # default (SCALED_NRC_1)
+            if vad_mapper_name is VADMapperName.SCALED_NRC_2:
+                n_quantiles = 15
+            if vad_mapper_name is VADMapperName.SCALED_NRC_3:
+                n_quantiles = 21
+
+            logger.info("VADMapper using *scaled* NRC for VAD mappings, "
+                        f"with n_quantiles={n_quantiles}")
+            df_nrc = data_utils.get_nrc_vad_mapping(args.nrc_vad_mapping_path, labels_names_list)
+            self.label_idx_to_vad_mapping = df_nrc.values.tolist()
+            scaler = QuantileTransformer(n_quantiles=n_quantiles,
+                                         output_distribution='uniform')
+            self.label_idx_to_vad_mapping = scaler.fit_transform(self.label_idx_to_vad_mapping)
 
         else:
             raise Exception(f"ERROR - Unexpected VADMapperName, please handle {vad_mapper_name} "

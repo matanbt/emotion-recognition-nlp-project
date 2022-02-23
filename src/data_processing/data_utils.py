@@ -1,4 +1,6 @@
 import os
+
+import pandas as pd
 from datasets import DatasetDict
 
 
@@ -39,3 +41,17 @@ def get_ge_labels_list(args=None):
             labels.append(line.rstrip())
     go_emotions_cached_labels_list = labels.copy()
     return labels
+
+
+def get_nrc_vad_mapping(nrc_vad_mapping_path, labels_names_list):
+    df_nrc = pd.read_csv(nrc_vad_mapping_path, sep="\t", names=['word', 'v', 'a', 'd'])
+    df_nrc = df_nrc[df_nrc["word"].apply(lambda word: word in labels_names_list)]
+
+    assert len(df_nrc) == 28
+
+    df_nrc.set_index('word', inplace=True)
+
+    # Sort emotions by labels_names_list order
+    df_nrc = df_nrc.reindex(labels_names_list)
+
+    return df_nrc
