@@ -45,6 +45,7 @@ class ModelArgs:
     target_dim: int = None
     hidden_layers_count: int = None
     hidden_layer_dim: int = None
+    pool_mode: str = None
 
     # Optional (classification oriented)
     threshold: float = None
@@ -90,7 +91,7 @@ classic_vad_regression_model_conf = ModelArgs("ge_regression_to_vad",
                                               compute_metrics_regression_vad,
                                               IDENTITY_FUNC,
                                               "vad",
-                                              vad_mapper_name=VADMapperName.NRC,
+                                              vad_mapper_name=VADMapperName.SCALED_NRC_1,
                                               target_dim=3,
                                               hidden_layer_dim=400,
                                               hidden_layers_count=1)
