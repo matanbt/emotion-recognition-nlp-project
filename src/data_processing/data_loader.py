@@ -142,7 +142,6 @@ class GoEmotionsProcessor(BaseProcessor):
         self.vad_mapper = None if not self.with_vad else VADMapper(args, vad_mapper_name, self.labels_list)
         # Create min_distance_for_each_dim (minimum-not zero distance for each dim of the vad)
         self.min_distance_for_each_dim = None if not self.with_vad else self.calc_min_distance_for_each_vad_dim()
-        print(self.min_distance_for_each_dim)  # TODO shir - check if this is the same as before
 
         # Fetch raw dataset, with columns: ['id', 'text', 'labels']
         # 'self.raw_dataset' remains *untouched* in this class.
