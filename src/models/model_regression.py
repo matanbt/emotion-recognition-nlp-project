@@ -17,7 +17,7 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
         self.target_dim = target_dim
         self.hidden_layers_count = hidden_layers_count
         self.hidden_layers_dim = hidden_layer_dim
-        self.pool_mode = pool_mode
+        self.pool_mode = pool_mode if pool_mode is not None else 'cls'
 
         self.bert = BertModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
