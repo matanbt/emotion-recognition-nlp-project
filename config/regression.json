@@ -27,6 +27,8 @@
   "do_eval": true,
   "save_optimizer": false,
 
+  "with_noise": false,
+
   "logging_steps": 1000,
   "save_steps": 5000,
 
