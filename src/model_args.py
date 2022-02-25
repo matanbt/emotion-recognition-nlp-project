@@ -140,12 +140,6 @@ model_choices = {
     'baseline': classic_multi_label_model_conf,
     'regression': classic_vad_regression_model_conf,
 
-# "hidden_size": 200,
-#       "num_layers": 1,
-#       "num_epochs": 50,
-#       "dropout": 0.0,
-#       "learning_rate": 0.001,
-#       "epsilon": 1e-05,
 
     # experiments
     # --- changing VAD mapping ---
