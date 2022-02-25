@@ -56,6 +56,7 @@ class ModelArgs:
 
     # Optional (regression-penalty oriented)
     lambda_param: float = None  # weight for penalty
+    experiments_joker: str = None
 
 
     def override_with_args(self, args_to_override: dict):
@@ -114,24 +115,36 @@ classic_vad_regression_penalty_model_conf = ModelArgs("ge_regression_to_vad_with
                                                       target_dim=3,
                                                       hidden_layer_dim=200,
                                                       hidden_layers_count=1,
+                                                      experiments_joker="",
                                                       lambda_param=0.1)
 
 # experimental regression with other vad mappings
 # TODO delete these afterward
 from copy import copy
 
-vad_scaled_nrc_1 = copy(classic_vad_regression_model_conf)
-vad_scaled_nrc_1.vad_mapper_name = VADMapperName.SCALED_NRC_1
+# vad_scaled_nrc_1 = copy(classic_vad_regression_model_conf)
+# vad_scaled_nrc_1.vad_mapper_name = VADMapperName.SCALED_NRC_1
+#
+# vad_scaled_nrc_2 = copy(classic_vad_regression_model_conf)
+# vad_scaled_nrc_2.vad_mapper_name = VADMapperName.SCALED_NRC_2
+#
+# vad_scaled_nrc_3 = copy(classic_vad_regression_model_conf)
+# vad_scaled_nrc_3.vad_mapper_name = VADMapperName.SCALED_NRC_3
+#
+# vad_naive = copy(classic_vad_regression_model_conf)
+# vad_naive.vad_mapper_name = VADMapperName.NAIVE
 
-vad_scaled_nrc_2 = copy(classic_vad_regression_model_conf)
-vad_scaled_nrc_2.vad_mapper_name = VADMapperName.SCALED_NRC_2
+reg_penalty_2 = copy(classic_vad_regression_penalty_model_conf)
+reg_penalty_2.lambda_param = 0.001
 
-vad_scaled_nrc_3 = copy(classic_vad_regression_model_conf)
-vad_scaled_nrc_3.vad_mapper_name = VADMapperName.SCALED_NRC_3
+reg_penalty_3 = copy(classic_vad_regression_penalty_model_conf)
+reg_penalty_3.experiments_joker = "MAE+(CELoss*0.01)^2"
 
-vad_naive = copy(classic_vad_regression_model_conf)
-vad_naive.vad_mapper_name = VADMapperName.NAIVE
+reg_penalty_4 = copy(classic_vad_regression_penalty_model_conf)
+reg_penalty_4.experiments_joker = "MAE-->CELoss"
 
+reg_penalty_5 = copy(classic_vad_regression_penalty_model_conf)
+reg_penalty_5.experiments_joker = "MAE-->MAE+CELoss*0.01"
 # ---------------------------
 # We can add more ModelArgs instances here...
 # ---------------------------------------------------------------------
@@ -140,15 +153,19 @@ model_choices = {
     'baseline': classic_multi_label_model_conf,
     'regression': classic_vad_regression_model_conf,
 
-
     # experiments
     # --- changing VAD mapping ---
-    'vad_scaled_nrc_1': vad_scaled_nrc_1,
-    'vad_scaled_nrc_2': vad_scaled_nrc_2,
-    'vad_scaled_nrc_3': vad_scaled_nrc_3,
-    'vad_naive': vad_naive,
+    # 'vad_scaled_nrc_1': vad_scaled_nrc_1,
+    # 'vad_scaled_nrc_2': vad_scaled_nrc_2,
+    # 'vad_scaled_nrc_3': vad_scaled_nrc_3,
+    # 'vad_naive': vad_naive,
 
     # --- regression with penalty ---
-    'regression_penalty': classic_vad_regression_penalty_model_conf,
+    'regression_penalty': classic_vad_regression_penalty_model_conf,  # regular
+    'reg_penalty_2': reg_penalty_2,
+    'reg_penalty_3': reg_penalty_3,
+    'reg_penalty_4': reg_penalty_4,
+    'reg_penalty_5': reg_penalty_5,
+
     # we can add more model choices here... ('our-model-name': the-ModelArgs-instance)
 }

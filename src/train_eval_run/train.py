@@ -83,7 +83,7 @@ def train(args,
         epoch_iterator = tqdm(train_dataloader, desc="Iteration")
         for step, batch in enumerate(epoch_iterator):
             model.train()
-            outputs = model(**batch)
+            outputs = model(**batch, global_step=global_step)
 
             loss = outputs[0]
 

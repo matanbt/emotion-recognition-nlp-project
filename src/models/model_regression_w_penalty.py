@@ -19,6 +19,7 @@ class BertForMultiDimensionRegressionPenalty(BertPreTrainedModel):
         self.hidden_layers_dim = hidden_layer_dim
         self.pool_mode = pool_mode
         self.emotions_vads_lst = None  # will be fulfilled
+        self.experiments_joker = kwargs.get('experiments_joker', "")
 
         self.bert = BertModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
@@ -58,6 +59,7 @@ class BertForMultiDimensionRegressionPenalty(BertPreTrainedModel):
             inputs_embeds=None,
             output_targets=None,
             vad=None,
+            global_step=None,
             **kwargs
     ):
         """
@@ -108,7 +110,17 @@ class BertForMultiDimensionRegressionPenalty(BertPreTrainedModel):
 
         if output_targets is not None:
             loss = self.loss_func(logits, output_targets)
-            loss += self.ce(class_logits, class_targets) * self.lambda_param
+            if self.experiments_joker == "":
+                loss += self.ce(class_logits, class_targets) * self.lambda_param
+            elif self.experiments_joker == "MAE+(CELoss*0.01)^2":
+                loss += torch.square(self.ce(class_logits, class_targets) * 0.01)
+            elif self.experiments_joker == "MAE-->CELoss":
+                if global_step > 11000:
+                    # after half way we change the loss!
+                    loss = self.ce(class_logits, class_targets)
+            elif self.experiments_joker == "MAE-->MAE+CELoss*0.01":
+                if global_step > 11000:
+                    loss += self.ce(class_logits, class_targets) * 0.01
 
             outputs = (loss,) + outputs
 
