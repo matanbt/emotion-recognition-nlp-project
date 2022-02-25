@@ -23,6 +23,9 @@ class VADMapperName(Enum):
     SCALED_NRC_2 = "Mapping by NRC, scaled with QuantileTransformer(n_quantiles=15)"
     SCALED_NRC_3 = "Mapping by NRC, scaled with QuantileTransformer(n_quantiles=21)"
 
+    # baseline for VAD mappings, to prove that a good mapping helps.
+    NAIVE = "Mapping naively, by defining evenly spaced VADs"
+
 
 class VADMapper:
     """
@@ -57,6 +60,13 @@ class VADMapper:
             scaler = QuantileTransformer(n_quantiles=n_quantiles,
                                          output_distribution='uniform')
             self.label_idx_to_vad_mapping = scaler.fit_transform(self.label_idx_to_vad_mapping)
+
+        elif vad_mapper_name is VADMapperName.NAIVE:
+            _even_space = 1 / (len(labels_names_list) - 1)
+            _vad_dim = 3
+            # evenly spreads the VADs in the unit-cube
+            self.label_idx_to_vad_mapping = [np.arange(0, 1 + _even_space, _even_space).tolist()
+                                             for _ in range(_vad_dim)]
 
         else:
             raise Exception(f"ERROR - Unexpected VADMapperName, please handle {vad_mapper_name} "
