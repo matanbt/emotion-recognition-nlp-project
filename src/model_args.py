@@ -100,7 +100,7 @@ classic_vad_regression_model_conf = ModelArgs("ge_regression_to_vad",
                                               "vad",
                                               vad_mapper_name=VADMapperName.NRC,
                                               target_dim=3,
-                                              hidden_layer_dim=400,
+                                              hidden_layer_dim=200,
                                               hidden_layers_count=1)
 
 
@@ -112,7 +112,7 @@ classic_vad_regression_penalty_model_conf = ModelArgs("ge_regression_to_vad_with
                                                       "vad",
                                                       vad_mapper_name=VADMapperName.NRC,
                                                       target_dim=3,
-                                                      hidden_layer_dim=400,
+                                                      hidden_layer_dim=200,
                                                       hidden_layers_count=1,
                                                       lambda_param=0.1)
 
@@ -139,6 +139,13 @@ vad_naive.vad_mapper_name = VADMapperName.NAIVE
 model_choices = {
     'baseline': classic_multi_label_model_conf,
     'regression': classic_vad_regression_model_conf,
+
+# "hidden_size": 200,
+#       "num_layers": 1,
+#       "num_epochs": 50,
+#       "dropout": 0.0,
+#       "learning_rate": 0.001,
+#       "epsilon": 1e-05,
 
     # experiments
     # --- changing VAD mapping ---

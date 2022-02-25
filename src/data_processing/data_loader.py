@@ -45,7 +45,7 @@ class VADMapper:
             df_nrc = data_utils.get_nrc_vad_mapping(args.nrc_vad_mapping_path, labels_names_list)
             self.label_idx_to_vad_mapping = df_nrc.values.tolist()
 
-        elif vad_mapper_name in (VADMapperName.SCALED_NRC_1, VADMapperName.SCALED_NRC_2):
+        elif vad_mapper_name in (VADMapperName.SCALED_NRC_1, VADMapperName.SCALED_NRC_2, VADMapperName.SCALED_NRC_3):
             from sklearn.preprocessing import QuantileTransformer
             n_quantiles = 28  # default (SCALED_NRC_1)
             if vad_mapper_name is VADMapperName.SCALED_NRC_2:
