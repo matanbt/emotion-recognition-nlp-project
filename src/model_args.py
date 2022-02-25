@@ -26,6 +26,8 @@ class ModelArgs:
     target_dim - relevant only for regression models, number of dimensions the model need to estimate (e.g.: in VAD =3)
     hidden_layers_count - amount of NN layers in the "output-layer" of the model (default to `1`)
     threshold - the threshold for classification problems, used in evaluation.
+    emotions_vads_lst - list of the emotions' vad values (ordered by the emotions' labels order). (!) must use this
+    in regression
     """
     model_name: str
 
@@ -46,6 +48,7 @@ class ModelArgs:
     hidden_layers_count: int = None
     hidden_layer_dim: int = None
     pool_mode: str = None
+    emotions_vads_lst: list = None
 
     # Optional (classification oriented)
     threshold: float = None

@@ -68,7 +68,8 @@ def compute_metrics_classification(label_targets, label_preds, name_suffix=''):
     return results
 
 
-def compute_metrics_regression_vad(vad_targets, vad_preds):
+def compute_metrics_regression_vad(vad_targets, vad_preds, emo_lbl_idx_to_vad):
+    """ emo_lbl_idx_to_vad - list of the emotions' vad values (ordered by the emotions' labels order) """
     assert len(vad_preds) == len(vad_targets)
     results = dict()
 
@@ -81,7 +82,7 @@ def compute_metrics_regression_vad(vad_targets, vad_preds):
     #     results[f"mean_squared_error_{vad_letter}"] = mean_squared_error(vad_targets[:, i], vad_preds[:, i])
 
     # Add the classification metrics by mapping back to labels
-    label_targets = compute_labels_from_regression(vad_targets, 'euclidean')
+    label_targets = compute_labels_from_regression(vad_targets, 'euclidean', emo_lbl_idx_to_vad)
 
     # metrics - the metrics used for the mapping
     # key - metric name, value - metric function or metric str identifier as described in sklearn.metrics.DistanceMetric
@@ -98,28 +99,30 @@ def compute_metrics_regression_vad(vad_targets, vad_preds):
     }
 
     for metric_name, metric in metrics.items():
-        label_preds = compute_labels_from_regression(vad_preds, metric)
+        label_preds = compute_labels_from_regression(vad_preds, metric, emo_lbl_idx_to_vad)
         results.update(compute_metrics_classification(label_targets, label_preds, f'_{metric_name}'))
 
     # Try VA metric
     va_preds = vad_preds[:, :2]
+    emo_lbl_idx_to_va = np.array(emo_lbl_idx_to_vad)[:, :2]
     for metric_name, metric in metrics.items():
-        label_preds = nearest_neighbor(va_preds, NRC_IDX_TO_VA, metric)
+        label_preds = nearest_neighbor(va_preds, emo_lbl_idx_to_va, metric)
         results.update(
             compute_metrics_classification(label_targets, label_preds, f'_va_{metric_name}'))
 
     return results
 
 
-def compute_labels_from_regression(vads, metric):
+def compute_labels_from_regression(vads, metric, emo_lbl_idx_to_vad):
     """
         vads - list of vad points
+        emo_lbl_idx_to_vad - list of the emotions' vad values (ordered by the emotions' labels order)
         Maps the VADs to emotions by NearestNeighbors with the specified metric
         metric - metric function or metric str identifier as described in sklearn.metrics.DistanceMetric
         returns labels idx list
     """
 
-    labels = nearest_neighbor(vads, NRC_IDX_TO_VAD, metric)
+    labels = nearest_neighbor(vads, emo_lbl_idx_to_vad, metric)
     return labels
 
 def nearest_neighbor(points, possible_points, metric):
@@ -136,89 +139,4 @@ def nearest_neighbor(points, possible_points, metric):
 SIGMOID_FUNC = lambda x: 1 / (1 + np.exp(-x.detach().cpu().numpy()))
 IDENTITY_FUNC = lambda x: x
 
-NRC_VAD_TO_IDX = {(0.969, 0.583, 0.726): 0,
-                  (0.929, 0.837, 0.803): 1,
-                  (0.167, 0.865, 0.657): 2,
-                  (0.167, 0.718, 0.342): 3,
-                  (0.854, 0.46, 0.889): 4,
-                  (0.635, 0.469, 0.5): 5,
-                  (0.255, 0.667, 0.277): 6,
-                  (0.75, 0.755, 0.463): 7,
-                  (0.896, 0.692, 0.647): 8,
-                  (0.115, 0.49, 0.336): 9,
-                  (0.085, 0.551, 0.367): 10,
-                  (0.052, 0.775, 0.317): 11,
-                  (0.143, 0.685, 0.226): 12,
-                  (0.896, 0.684, 0.731): 13,
-                  (0.073, 0.84, 0.293): 14,
-                  (0.885, 0.441, 0.61): 15,
-                  (0.07, 0.64, 0.474): 16,
-                  (0.98, 0.824, 0.794): 17,
-                  (1.0, 0.519, 0.673): 18,
-                  (0.163, 0.915, 0.241): 19,
-                  (0.949, 0.565, 0.814): 22,
-                  (0.729, 0.634, 0.848): 21,
-                  (0.554, 0.51, 0.836): 22,
-                  (0.844, 0.278, 0.481): 23,
-                  (0.103, 0.673, 0.377): 24,
-                  (0.052, 0.288, 0.164): 25,
-                  (0.875, 0.875, 0.562): 26,
-                  (0.469, 0.184, 0.357): 27}
-
-NRC_IDX_TO_VA = [(0.969, 0.583),
-                  (0.929, 0.837),
-                  (0.167, 0.865),
-                  (0.167, 0.718),
-                  (0.854, 0.46),
-                  (0.635, 0.469),
-                  (0.255, 0.667),
-                  (0.75, 0.755),
-                  (0.896, 0.692),
-                  (0.115, 0.49),
-                  (0.085, 0.551),
-                  (0.052, 0.775),
-                  (0.143, 0.685),
-                  (0.896, 0.684),
-                  (0.073, 0.84),
-                  (0.885, 0.441),
-                  (0.07, 0.64),
-                  (0.98, 0.824),
-                  (1.0, 0.519),
-                  (0.163, 0.915),
-                  (0.949, 0.565),
-                  (0.729, 0.634),
-                  (0.554, 0.51),
-                  (0.844, 0.278),
-                  (0.103, 0.673),
-                  (0.052, 0.288),
-                  (0.875, 0.875),
-                  (0.469, 0.184)]
-NRC_IDX_TO_VAD = [(0.969, 0.583, 0.726),
-                  (0.929, 0.837, 0.803),
-                  (0.167, 0.865, 0.657),
-                  (0.167, 0.718, 0.342),
-                  (0.854, 0.46, 0.889),
-                  (0.635, 0.469, 0.5),
-                  (0.255, 0.667, 0.277),
-                  (0.75, 0.755, 0.463),
-                  (0.896, 0.692, 0.647),
-                  (0.115, 0.49, 0.336),
-                  (0.085, 0.551, 0.367),
-                  (0.052, 0.775, 0.317),
-                  (0.143, 0.685, 0.226),
-                  (0.896, 0.684, 0.731),
-                  (0.073, 0.84, 0.293),
-                  (0.885, 0.441, 0.61),
-                  (0.07, 0.64, 0.474),
-                  (0.98, 0.824, 0.794),
-                  (1.0, 0.519, 0.673),
-                  (0.163, 0.915, 0.241),
-                  (0.949, 0.565, 0.814),
-                  (0.729, 0.634, 0.848),
-                  (0.554, 0.51, 0.836),
-                  (0.844, 0.278, 0.481),
-                  (0.103, 0.673, 0.377),
-                  (0.052, 0.288, 0.164),
-                  (0.875, 0.875, 0.562),
-                  (0.469, 0.184, 0.357)]
 

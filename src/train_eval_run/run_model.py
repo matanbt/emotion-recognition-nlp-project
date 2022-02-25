@@ -58,6 +58,9 @@ def run(args, model_args, tb_writer: SummaryWriter):
     # Process Data
     processor = model_args.data_processor_class(args, tokenizer, args.max_seq_len,
                                                 vad_mapper_name=model_args.vad_mapper_name)
+    if model_args.vad_mapper_name is not None:  # regression case
+        model_args.emotions_vads_lst = processor.get_emotions_vads_lst()
+
     processor.perform_full_preprocess()
 
     # Load dataset

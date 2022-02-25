@@ -65,6 +65,10 @@ class VADMapper:
     def map_go_emotions_labels(self, label_index):
         return self.label_idx_to_vad_mapping[label_index]
 
+    def get_emotions_vads_lst(self):
+        """ returns the list of the emotions' vad values (ordered by the emotions' labels order) """
+        return list(self.label_idx_to_vad_mapping)
+
 
 # ---------------------------------------------------------------------
 class BaseProcessor:
@@ -238,6 +242,12 @@ class GoEmotionsProcessor(BaseProcessor):
         self.processed_dataset.set_format(type='torch',
                                           columns=features_to_tensor,
                                           device=self.args.device)
+
+    def get_emotions_vads_lst(self):
+        """ returns the list of the emotions' vad values (ordered by the emotions' labels order)
+        can be used only when self.with_vad is True """
+        assert self.with_vad is True
+        return self.vad_mapper.get_emotions_vads_lst()
 
     # --- Hugging-face mappers --- (to be used in "dataset.map()" invocations)
 
