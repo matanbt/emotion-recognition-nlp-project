@@ -140,6 +140,9 @@ class GoEmotionsProcessor(BaseProcessor):
 
         # Create vad_mapper
         self.vad_mapper = None if not self.with_vad else VADMapper(args, vad_mapper_name, self.labels_list)
+        # Create min_distance_for_each_dim (minimum-not zero distance for each dim of the vad)
+        self.min_distance_for_each_dim = None if not self.with_vad else self.calc_min_distance_for_each_vad_dim()
+        print(self.min_distance_for_each_dim)  # TODO shir - check if this is the same as before
 
         # Fetch raw dataset, with columns: ['id', 'text', 'labels']
         # 'self.raw_dataset' remains *untouched* in this class.
@@ -193,6 +196,19 @@ class GoEmotionsProcessor(BaseProcessor):
                                                  self.max_length)
         # sets the relevant columns as tensors
         self._cast_to_tensors()
+
+    def calc_min_distance_for_each_vad_dim(self):
+
+        # helper function
+        def get_min_non_zero_distance(np_arr, dim_idx):
+            """ returns the minimum-not zero distance between values from np_arr in dimension = dim_idx"""
+            distances = np.abs(np_arr[:, dim_idx, np.newaxis] - np_arr[np.newaxis, :, dim_idx])
+            # set 0 distances to infinity
+            distances[distances == 0] = 2
+            return np.min(distances)
+
+        emotions_vads_np_arr = np.array(self.get_emotions_vads_lst())
+        return [get_min_non_zero_distance(emotions_vads_np_arr, dim) for dim in range(emotions_vads_np_arr.shape[1])]
 
     # --- Dataset Getters --
 
@@ -252,18 +268,13 @@ class GoEmotionsProcessor(BaseProcessor):
     # --- Hugging-face mappers --- (to be used in "dataset.map()" invocations)
 
     def _hf_batch_mapper__vad_mapping(self, examples):
-        V_MIN_DISTANCE = 0.0029
-        A_MIN_DISTANCE = 0.001
-        D_MIN_DISTANCE = 0.005
-
         examples['vad'] = []
         for label_idx in examples['labels']:
             # label_idx - list of labels corresponding to the given input
             _vad = self.vad_mapper.map_go_emotions_labels(label_idx[0])
             if self.with_noise:
-                _vad = _vad + np.random.normal(loc=[0.0, 0.0, 0.0], scale=[V_MIN_DISTANCE * self.noise_param,
-                                                                           A_MIN_DISTANCE * self.noise_param,
-                                                                           D_MIN_DISTANCE * self.noise_param])
+                _vad = _vad + np.random.normal(loc=[0.0, 0.0, 0.0],
+                                               scale=np.array(self.min_distance_for_each_dim) * self.noise_param)
             examples['vad'].append(_vad)
             # TODO overcome this assumption: for now we assume we have one label per example
         return examples
