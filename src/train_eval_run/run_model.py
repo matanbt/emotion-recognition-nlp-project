@@ -60,6 +60,8 @@ def run(args, model_args, tb_writer: SummaryWriter):
                                                 vad_mapper_name=model_args.vad_mapper_name)
     if model_args.vad_mapper_name is not None:  # regression case
         model_args.emotions_vads_lst = processor.get_emotions_vads_lst()
+        # informs the model instance of the VADs
+        model.emotions_vads_lst = torch.tensor(model_args.emotions_vads_lst, device=args.device)
 
     processor.perform_full_preprocess()
 

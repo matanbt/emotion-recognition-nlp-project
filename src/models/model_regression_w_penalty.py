@@ -18,7 +18,7 @@ class BertForMultiDimensionRegressionPenalty(BertPreTrainedModel):
         self.hidden_layers_count = hidden_layers_count
         self.hidden_layers_dim = hidden_layer_dim
         self.pool_mode = pool_mode
-        self.emotions_vads_lst = torch.tensor(kwargs['emotions_vads_lst']) # TODO this is dangerous and relies on fetching it
+        self.emotions_vads_lst = None  # will be fulfilled
 
         self.bert = BertModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
@@ -97,7 +97,6 @@ class BertForMultiDimensionRegressionPenalty(BertPreTrainedModel):
         outputs = (logits,) + outputs[2:]  # adds hidden states and attention if they are here
 
         # getting VAD-space-distance from predictions to target-labels
-        # TODO get_idx_to_vad_tensor should be done after shir's additions
         regr_targets = self.emotions_vads_lst.unsqueeze(dim=0).to(
             logits.device)  # VAD targets [28,3] --> [1,28,3]
         regr_logits = logits.unsqueeze(dim=1)  # logits [N,3] --> [N,1,3]

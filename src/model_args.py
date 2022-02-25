@@ -149,6 +149,6 @@ model_choices = {
     'vad_naive': vad_naive,
 
     # --- regression with penalty ---
-    'regression_penalty': classic_vad_regression_model_conf,
+    'regression_penalty': classic_vad_regression_penalty_model_conf,
     # we can add more model choices here... ('our-model-name': the-ModelArgs-instance)
 }
