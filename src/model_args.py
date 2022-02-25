@@ -5,6 +5,7 @@ from train_eval_run.utils import compute_metrics_classification, SIGMOID_FUNC, \
 from data_processing.data_loader import VADMapperName, GoEmotionsProcessor
 from models.model_baseline import BertForMultiLabelClassification
 from models.model_regression import BertForMultiDimensionRegression
+from models.model_regression_w_penalty import BertForMultiDimensionRegressionPenalty
 
 
 @dataclass
@@ -53,6 +54,9 @@ class ModelArgs:
     # Optional (classification oriented)
     threshold: float = None
 
+    # Optional (regression-penalty oriented)
+    lambda_param: float = None  # weight for penalty
+
 
     def override_with_args(self, args_to_override: dict):
         """
@@ -98,6 +102,36 @@ classic_vad_regression_model_conf = ModelArgs("ge_regression_to_vad",
                                               target_dim=3,
                                               hidden_layer_dim=400,
                                               hidden_layers_count=1)
+
+
+classic_vad_regression_penalty_model_conf = ModelArgs("ge_regression_to_vad_with_classification_penalty",
+                                                      BertForMultiDimensionRegressionPenalty,
+                                                      GoEmotionsProcessor,
+                                                      compute_metrics_regression_vad,
+                                                      IDENTITY_FUNC,
+                                                      "vad",
+                                                      vad_mapper_name=VADMapperName.NRC,
+                                                      target_dim=3,
+                                                      hidden_layer_dim=400,
+                                                      hidden_layers_count=1,
+                                                      lambda_param=0.1)
+
+# experimental regression with other vad mappings
+# TODO delete these afterward
+from copy import copy
+
+vad_scaled_nrc_1 = copy(classic_vad_regression_model_conf)
+vad_scaled_nrc_1.vad_mapper_name = VADMapperName.SCALED_NRC_1
+
+vad_scaled_nrc_2 = copy(classic_vad_regression_model_conf)
+vad_scaled_nrc_2.vad_mapper_name = VADMapperName.SCALED_NRC_2
+
+vad_scaled_nrc_3 = copy(classic_vad_regression_model_conf)
+vad_scaled_nrc_3.vad_mapper_name = VADMapperName.SCALED_NRC_3
+
+vad_naive = copy(classic_vad_regression_model_conf)
+vad_naive.vad_mapper_name = VADMapperName.NAIVE
+
 # ---------------------------
 # We can add more ModelArgs instances here...
 # ---------------------------------------------------------------------
@@ -105,5 +139,15 @@ classic_vad_regression_model_conf = ModelArgs("ge_regression_to_vad",
 model_choices = {
     'baseline': classic_multi_label_model_conf,
     'regression': classic_vad_regression_model_conf,
+
+    # experiments
+    # --- changing VAD mapping ---
+    'vad_scaled_nrc_1': vad_scaled_nrc_1,
+    'vad_scaled_nrc_2': vad_scaled_nrc_2,
+    'vad_scaled_nrc_3': vad_scaled_nrc_3,
+    'vad_naive': vad_naive,
+
+    # --- regression with penalty ---
+    'regression_penalty': classic_vad_regression_model_conf,
     # we can add more model choices here... ('our-model-name': the-ModelArgs-instance)
 }
