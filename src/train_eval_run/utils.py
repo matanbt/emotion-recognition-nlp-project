@@ -1,3 +1,4 @@
+import math
 import os
 import random
 import logging
@@ -140,3 +141,14 @@ SIGMOID_FUNC = lambda x: 1 / (1 + np.exp(-x.detach().cpu().numpy()))
 IDENTITY_FUNC = lambda x: x
 
 
+def min_dist_pair(vector) -> int:
+    """
+     Returns the minimum non-zero distance between a pair of values in a 1-D array.
+    """
+    min_dist = math.inf
+    for i in range(len(vector)):
+        for j in range(i + 1, len(vector)):
+            if (vector[i] - vector[j]) != 0:
+                min_dist = min(min_dist, abs(vector[i] - vector[j]))
+
+    return min_dist
