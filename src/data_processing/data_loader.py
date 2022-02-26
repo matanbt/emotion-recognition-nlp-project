@@ -64,9 +64,12 @@ class VADMapper:
         elif vad_mapper_name is VADMapperName.NAIVE:
             _even_space = 1 / (len(labels_names_list) - 1)
             _vad_dim = 3
+            self.label_idx_to_vad_mapping = np.zeros((len(labels_names_list), _vad_dim))
+
             # evenly spreads the VADs in the unit-cube
-            self.label_idx_to_vad_mapping = [np.arange(0, 1 + _even_space, _even_space).tolist()
-                                             for _ in range(_vad_dim)]
+            for i in range(_vad_dim):
+                self.label_idx_to_vad_mapping[:, i] = np.arange(0, 1 + _even_space, _even_space)
+            self.label_idx_to_vad_mapping = self.label_idx_to_vad_mapping.tolist()
 
         else:
             raise Exception(f"ERROR - Unexpected VADMapperName, please handle {vad_mapper_name} "
