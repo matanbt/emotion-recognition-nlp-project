@@ -48,6 +48,7 @@ def run(args, model_args, tb_writer: SummaryWriter):
     model = model_args.model_class.from_pretrained(
         args.model_name_or_path,
         config=config,
+        huber_delta=args.huber_delta
         **vars(model_args)
     )
 

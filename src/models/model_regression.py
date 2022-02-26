@@ -12,12 +12,14 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
                  hidden_layers_count=1,
                  hidden_layer_dim=400,
                  pool_mode='cls',
+                 huber_delta=0.01,
                  **kwargs):
         super().__init__(config)
         self.target_dim = target_dim
         self.hidden_layers_count = hidden_layers_count
         self.hidden_layers_dim = hidden_layer_dim
         self.pool_mode = pool_mode if pool_mode is not None else 'cls'
+        self.huber_delta = huber_delta
 
         self.bert = BertModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
@@ -41,7 +43,7 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
         self._L1 = nn.L1Loss()
 
         # Choose your loss here:
-        self.loss_func = self._L1 if (loss_func is None) else loss_func
+        self.loss_func = nn.HuberLoss(delta=self.huber_delta)
 
         self.init_weights()
 
