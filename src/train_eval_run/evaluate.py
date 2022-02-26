@@ -37,7 +37,8 @@ def evaluate(args,
     logger.info("  Num examples = {}".format(len(eval_dataset)))
     logger.info("  Eval Batch size = {}".format(args.eval_batch_size))
 
-    eval_loss, targets, preds = only_eval(eval_dataset, model, model_args, args.eval_batch_size)
+    eval_loss, targets, preds = only_eval(eval_dataset, model, model_args, args.eval_batch_size,
+                                          global_step=global_step)
 
     results = {
         "loss": eval_loss
@@ -72,7 +73,7 @@ def evaluate(args,
 
 
 
-def only_eval(eval_dataset, model, model_args, eval_batch_size):
+def only_eval(eval_dataset, model, model_args, eval_batch_size, global_step=None):
     """
     evaluate without analyzing
     """
@@ -88,7 +89,7 @@ def only_eval(eval_dataset, model, model_args, eval_batch_size):
         model.eval()
 
         with torch.no_grad():
-            outputs = model(**batch)
+            outputs = model(**batch, global_step=global_step)
             tmp_eval_loss, logits = outputs[:2]
 
             eval_loss += tmp_eval_loss.mean().item()
