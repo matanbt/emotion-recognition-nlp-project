@@ -22,6 +22,9 @@ class VADMapperName(Enum):
     SCALED_NRC_1 = "Mapping by NRC, scaled with QuantileTransformer(n_quantiles=28): uniform dist all the way.."
     SCALED_NRC_2 = "Mapping by NRC, scaled with QuantileTransformer(n_quantiles=15)"
     SCALED_NRC_3 = "Mapping by NRC, scaled with QuantileTransformer(n_quantiles=21)"
+    SCALED_NRC_4 = "Mapping by NRC, scaled with QuantileTransformer(n_quantiles=18)"
+    SCALED_NRC_5 = "Mapping by NRC, scaled with QuantileTransformer(n_quantiles=10)"
+    SCALED_NRC_6 = "Mapping by NRC, scaled with QuantileTransformer(n_quantiles=5)"
 
     # baseline for VAD mappings, to prove that a good mapping helps.
     NAIVE = "Mapping naively, by defining evenly spaced VADs"
@@ -45,13 +48,21 @@ class VADMapper:
             df_nrc = data_utils.get_nrc_vad_mapping(args.nrc_vad_mapping_path, labels_names_list)
             self.label_idx_to_vad_mapping = df_nrc.values.tolist()
 
-        elif vad_mapper_name in (VADMapperName.SCALED_NRC_1, VADMapperName.SCALED_NRC_2, VADMapperName.SCALED_NRC_3):
+        elif vad_mapper_name in (VADMapperName.SCALED_NRC_1, VADMapperName.SCALED_NRC_2,
+                                 VADMapperName.SCALED_NRC_3, VADMapperName.SCALED_NRC_4,
+                                 VADMapperName.SCALED_NRC_5, VADMapperName.SCALED_NRC_6):
             from sklearn.preprocessing import QuantileTransformer
             n_quantiles = 28  # default (SCALED_NRC_1)
             if vad_mapper_name is VADMapperName.SCALED_NRC_2:
                 n_quantiles = 15
-            if vad_mapper_name is VADMapperName.SCALED_NRC_3:
+            elif vad_mapper_name is VADMapperName.SCALED_NRC_3:
                 n_quantiles = 21
+            elif vad_mapper_name is VADMapperName.SCALED_NRC_4:
+                n_quantiles = 18
+            elif vad_mapper_name is VADMapperName.SCALED_NRC_5:
+                n_quantiles = 10
+            elif vad_mapper_name is VADMapperName.SCALED_NRC_6:
+                n_quantiles = 5
 
             logger.info("VADMapper using *scaled* NRC for VAD mappings, "
                         f"with n_quantiles={n_quantiles}")

@@ -129,6 +129,15 @@ vad_scaled_nrc_2.vad_mapper_name = VADMapperName.SCALED_NRC_2
 vad_scaled_nrc_3 = copy(classic_vad_regression_model_conf)
 vad_scaled_nrc_3.vad_mapper_name = VADMapperName.SCALED_NRC_3
 
+vad_scaled_nrc_4 = copy(classic_vad_regression_model_conf)
+vad_scaled_nrc_4.vad_mapper_name = VADMapperName.SCALED_NRC_4
+
+vad_scaled_nrc_5 = copy(classic_vad_regression_model_conf)
+vad_scaled_nrc_5.vad_mapper_name = VADMapperName.SCALED_NRC_5
+
+vad_scaled_nrc_6 = copy(classic_vad_regression_model_conf)
+vad_scaled_nrc_6.vad_mapper_name = VADMapperName.SCALED_NRC_6
+
 vad_naive = copy(classic_vad_regression_model_conf)
 vad_naive.vad_mapper_name = VADMapperName.NAIVE
 
@@ -146,6 +155,9 @@ model_choices = {
     'vad_scaled_nrc_1': vad_scaled_nrc_1,
     'vad_scaled_nrc_2': vad_scaled_nrc_2,
     'vad_scaled_nrc_3': vad_scaled_nrc_3,
+    'vad_scaled_nrc_4': vad_scaled_nrc_4,
+    'vad_scaled_nrc_5': vad_scaled_nrc_5,
+    'vad_scaled_nrc_6': vad_scaled_nrc_6,
     'vad_naive': vad_naive,
 
     # --- regression with penalty ---
