@@ -7,7 +7,7 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
 
     def __init__(self,
                  config,
-                 loss_func=None,
+                 loss_func: str = None,
                  target_dim=3,
                  hidden_layers_count=1,
                  hidden_layer_dim=400,
@@ -36,12 +36,15 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
             self.output_layer = nn.Sequential(*layers_lst)
 
         # Loss choices (comment-out unused losses before experimenting):
-        self._MSE = nn.MSELoss()
-        self._RMSE = lambda preds, targets : torch.sqrt(self._MSE(preds, targets))
-        self._L1 = nn.L1Loss()
+        losses = {
+            'MSE': nn.MSELoss(),
+            'RMSE': lambda preds, targets : torch.sqrt(self._MSE(preds, targets)),
+            'MAE': nn.L1Loss(),
+            'KLDiv': nn.KLDivLoss()
+        }
 
         # Choose your loss here:
-        self.loss_func = self._L1 if (loss_func is None) else loss_func
+        self.loss_func = losses['L1'] if (loss_func is None) else losses[loss_func]
 
         self.init_weights()
 
@@ -74,7 +77,7 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
         # outputs.last_hidden_state : the whole last-hidden-layer of BERT (batch_size, sequence_length, hidden_size)
         # outputs.pooler_output : [CLS] token in last hidden layer
         pooled_output = None
-
+        print(self.pool_mode)
         if self.pool_mode == 'cls':
             pooled_output = outputs.pooler_output
         elif self.pool_mode == 'last':

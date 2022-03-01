@@ -49,6 +49,7 @@ class ModelArgs:
     hidden_layers_count: int = None
     hidden_layer_dim: int = None
     pool_mode: str = None
+    loss_func: str = None
     emotions_vads_lst: list = None
 
     # Optional (classification oriented)
