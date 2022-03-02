@@ -167,7 +167,6 @@ def save_training_to_csv(model, train_dataset, args, global_step,
         | label | predicted VAD (V) |  predicted VAD (A) |  predicted VAD (D) |
     """
 
-    output_dir = os.path.join(args.output_dir, "checkpoint-{}".format(global_step))
     eval_sampler = SequentialSampler(train_dataset)
     eval_dataloader = DataLoader(train_dataset, sampler=eval_sampler, batch_size=1)
     arr = np.zeros((len(train_dataset), 4))
@@ -184,4 +183,5 @@ def save_training_to_csv(model, train_dataset, args, global_step,
 
         i += 1
 
-    np.savetxt(csv_f_name, arr, delimiter=",")
+    path = os.path.join(args.summary_path, csv_f_name)
+    np.savetxt(path, arr)

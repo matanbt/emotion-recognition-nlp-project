@@ -30,9 +30,9 @@ def main():
     with open(config_path) as f:
         args = AttrDict(json.load(f))
 
-    summary_path = os.path.join(args.output_dir, f"summary_{args.task}_model_"
+    args.summary_path = os.path.join(args.output_dir, f"summary_{args.task}_model_"
                                                    f"{get_curr_time_for_filename()}")
-    init_logger(summary_path)
+    init_logger(args.summary_path)
 
     logger.info(f"Configuration file: {config_path}")
     logger.info("Training/evaluation parameters {}".format(args))
@@ -47,7 +47,7 @@ def main():
     logger.info(f"Model arguments: {model_args}")
 
     # Initiate Tensorboard
-    tb_writer = init_tensorboard_writer(summary_path)
+    tb_writer = init_tensorboard_writer(args.summary_path)
 
     # --- Run ---
     run_model.run(args, model_args, tb_writer)

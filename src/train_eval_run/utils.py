@@ -14,6 +14,16 @@ from sklearn.metrics import r2_score, mean_squared_error
 
 from sklearn.neighbors import NearestNeighbors
 
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.neural_network import MLPClassifier
+from sklearn.svm import SVC
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.tree import DecisionTreeClassifier
+from xgboost import XGBClassifier
+
+
+logger = logging.getLogger(__name__)
+
 def init_logger(dir_path: str):
     os.makedirs(dir_path)
     path = os.path.join(dir_path, 'run.log')
@@ -68,7 +78,8 @@ def compute_metrics_classification(label_targets, label_preds, name_suffix=''):
     return results
 
 
-def compute_metrics_regression_vad(vad_targets, vad_preds, emo_lbl_idx_to_vad):
+def compute_metrics_regression_vad(vad_targets, vad_preds, emo_lbl_idx_to_vad,
+                                   labels_targets, args):
     """ emo_lbl_idx_to_vad - list of the emotions' vad values (ordered by the emotions' labels order) """
     assert len(vad_preds) == len(vad_targets)
     results = dict()
@@ -98,20 +109,55 @@ def compute_metrics_regression_vad(vad_targets, vad_preds, emo_lbl_idx_to_vad):
         # 'my_euclidean': lambda p1, p2: np.sqrt(np.sum((p1 - p2)**2))  # custom metric example, same as 'euclidean'
     }
 
+    # calculate our classic variation of KNN with different metrics:
     for metric_name, metric in metrics.items():
         label_preds = compute_labels_from_regression(vad_preds, metric, emo_lbl_idx_to_vad)
         results.update(compute_metrics_classification(label_targets, label_preds, f'_{metric_name}'))
 
-    # Try VA metric
-    va_preds = vad_preds[:, :2]
-    emo_lbl_idx_to_va = np.array(emo_lbl_idx_to_vad)[:, :2]
-    for metric_name, metric in metrics.items():
-        label_preds = nearest_neighbor(va_preds, emo_lbl_idx_to_va, metric)
-        results.update(
-            compute_metrics_classification(label_targets, label_preds, f'_va_{metric_name}'))
+    # train classifier on training_vads --> use it to map dev-set predictions to labels
+    results.update(special_classifiers_metrics(vad_preds, labels_targets, args))
+
+    # Try VA metric [commented out]
+    # va_preds = vad_preds[:, :2]
+    # emo_lbl_idx_to_va = np.array(emo_lbl_idx_to_vad)[:, :2]
+    # for metric_name, metric in metrics.items():
+    #     label_preds = nearest_neighbor(va_preds, emo_lbl_idx_to_va, metric)
+    #     results.update(
+    #         compute_metrics_classification(label_targets, label_preds, f'_va_{metric_name}'))
 
     return results
 
+def special_classifiers_metrics(eval_preds, eval_labels, args):
+    results = {}
+
+    # load training model results
+    arr = np.loadtxt(os.path.join(args.summary_path, "trained_vad.csv"))
+    train_vads, train_labels = arr[:, 1:], arr[:, 0].astype(int)
+
+    clfs_dict = {
+        'svm': SVC(kernel="sigmoid"),
+        '1NN': KNeighborsClassifier(1),
+        'tree': DecisionTreeClassifier(criterion='entropy', random_state=0),
+        'forest': RandomForestClassifier(max_depth=2, random_state=0),
+        'ADABoost': AdaBoostClassifier(),
+        'MLP': MLPClassifier(alpha=1, max_iter=1000),
+        'XGBoost': XGBClassifier(use_label_encoder=False)
+    }
+
+    for clf_name, clf in clfs_dict.items():
+        logger.info(f"Fitting classifier: {clf}")
+        clf.fit(train_vads, train_labels)
+        logger.info(f"Classifier: {clf.__class__.__name__} | "
+                    f"Training Accuracy: {clf.score(train_vads, train_labels)}")
+        logger.info(f"Classifier: {clf.__class__.__name__} | "
+                    f"Dev Accuracy: {clf.score(eval_preds, eval_labels)}")
+
+        eval_labels_preds = clf.predict(eval_preds)
+
+        results.update(compute_metrics_classification(eval_labels, eval_labels_preds,
+                                                      name_suffix=f"_{clf.__class__.__name__}"))
+
+    return results
 
 def compute_labels_from_regression(vads, metric, emo_lbl_idx_to_vad):
     """

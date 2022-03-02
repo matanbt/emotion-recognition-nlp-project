@@ -37,7 +37,7 @@ def evaluate(args,
     logger.info("  Num examples = {}".format(len(eval_dataset)))
     logger.info("  Eval Batch size = {}".format(args.eval_batch_size))
 
-    eval_loss, targets, preds = only_eval(eval_dataset, model, model_args, args.eval_batch_size)
+    eval_loss, labels, targets, preds = only_eval(eval_dataset, model, model_args, args.eval_batch_size)
 
     results = {
         "loss": eval_loss
@@ -50,7 +50,8 @@ def evaluate(args,
     if model_args.emotions_vads_lst is None:  # classification case
         result = model_args.compute_metrics(targets, preds)
     else:  # regression case
-        result = model_args.compute_metrics(targets, preds, model_args.emotions_vads_lst)
+        result = model_args.compute_metrics(targets, preds, model_args.emotions_vads_lst,
+                                            labels, args)
 
     results.update(result)
 
@@ -80,6 +81,7 @@ def only_eval(eval_dataset, model, model_args, eval_batch_size):
     nb_eval_steps = 0
     preds = None
     targets = None
+    labels = None
 
     eval_sampler = SequentialSampler(eval_dataset)
     eval_dataloader = DataLoader(eval_dataset, sampler=eval_sampler, batch_size=eval_batch_size)
@@ -95,20 +97,26 @@ def only_eval(eval_dataset, model, model_args, eval_batch_size):
         nb_eval_steps += 1
 
         curr_preds = model_args.func_on_model_output(logits)
+        curr_labels = batch['one_hot_labels'].argmax(dim=-1)
 
         # Move Tensors to CPU (in case these are indeed tensors...)
         if isinstance(curr_preds, torch.Tensor):
             curr_preds = curr_preds.detach().cpu().numpy()
         if isinstance(batch[model_args.target_name], torch.Tensor):
             curr_targets = batch[model_args.target_name].detach().cpu().numpy()
+        if isinstance(curr_labels, torch.Tensor):
+            curr_labels = curr_labels.detach().cpu().numpy()
+
 
         if preds is None:
             preds = curr_preds
             targets = curr_targets
+            labels = curr_labels
         else:
             preds = np.append(preds,  curr_preds, axis=0)
             targets = np.append(targets, curr_targets, axis=0)
+            labels = np.append(labels, curr_labels, axis=0)
 
     eval_loss = eval_loss / nb_eval_steps
 
-    return eval_loss, targets, preds
+    return eval_loss, labels, targets, preds
