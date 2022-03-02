@@ -16,7 +16,7 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
                  args: AttrDict = None,
                  **kwargs):
         super().__init__(config)
-        self.device = args.device if args else None
+        self.mDevice = args.device if args else None
         self.target_dim = target_dim
         self.hidden_layers_count = hidden_layers_count
         self.hidden_layers_dim = hidden_layer_dim
@@ -39,7 +39,7 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
             self.output_layer = nn.Sequential(*layers_lst)
 
         # Loss choices (comment-out unused losses before experimenting):
-        vad_weights = torch.tensor([0.4, 0.4, 0.2])
+        vad_weights = torch.tensor([0.4, 0.4, 0.2], device=self.mDevice)
         losses = {
             'MSE': nn.MSELoss(),
             'RMSE': lambda preds, targets : torch.sqrt(self._MSE(preds, targets)),
