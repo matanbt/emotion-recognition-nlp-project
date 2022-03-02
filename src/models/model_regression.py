@@ -45,7 +45,7 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
         }
 
         # Choose your loss here:
-        self.loss_func = losses['L1'] if (loss_func is None) else losses[loss_func]
+        self.loss_func = losses['MAE'] if (loss_func is None) else losses[loss_func]
 
         self.init_weights()
 
