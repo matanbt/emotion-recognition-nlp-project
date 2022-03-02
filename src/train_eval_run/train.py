@@ -1,8 +1,10 @@
 import os
 import logging
 
+import numpy as np
+
 import torch
-from torch.utils.data import DataLoader, RandomSampler
+from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from tqdm import tqdm, trange
 from torch.utils.tensorboard import SummaryWriter
 
@@ -124,6 +126,10 @@ def train(args,
     logger.info("Saving model final checkpoint...")
     save_model_checkpoint(args, model, tokenizer, global_step, optimizer, scheduler)
 
+    is_save_training_to_csv = True
+    if is_save_training_to_csv:
+        save_training_to_csv(model, train_dataset, args, global_step)
+
     logger.info("***** Finished Training *****")
 
     return global_step, tr_loss / global_step
@@ -152,3 +158,30 @@ def save_model_checkpoint(args,
         torch.save(optimizer.state_dict(), os.path.join(output_dir, "optimizer.pt"))
         torch.save(scheduler.state_dict(), os.path.join(output_dir, "scheduler.pt"))
         logger.info("Saving optimizer and scheduler states to {}".format(output_dir))
+
+
+def save_training_to_csv(model, train_dataset, args, global_step,
+                         csv_f_name="trained_vad.csv"):
+    """
+        saves to VAD a numpy matrix of:
+        | label | predicted VAD (V) |  predicted VAD (A) |  predicted VAD (D) |
+    """
+
+    output_dir = os.path.join(args.output_dir, "checkpoint-{}".format(global_step))
+    eval_sampler = SequentialSampler(train_dataset)
+    eval_dataloader = DataLoader(train_dataset, sampler=eval_sampler, batch_size=1)
+    arr = np.zeros((len(train_dataset), 4))
+    i = 0
+
+    for batch in tqdm(eval_dataloader, desc="Saving Forward passes to CSV"):
+        model.eval()
+
+        with torch.no_grad():
+            outputs = model(**batch)
+            loss, logits = outputs[:2]
+
+            arr[i] = [train_dataset['labels'][i][0]] + list(logits.squeeze(dim=0))
+
+        i += 1
+
+    np.savetxt(csv_f_name, arr, delimiter=",")
