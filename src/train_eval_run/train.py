@@ -111,6 +111,11 @@ def train(args,
                     if args.evaluate_test_during_training:
                         evaluate(args, model, model_args, tb_writer, test_dataset, "test", global_step)
                     else:
+                        # ----- # TODO find a better place for this logic
+                        is_save_training_to_csv = True
+                        if is_save_training_to_csv:
+                            save_training_to_csv(model, train_dataset, args)
+                        # ------
                         evaluate(args, model, model_args, tb_writer, dev_dataset, "dev", global_step)
 
                 if args.save_steps > 0 and global_step % args.save_steps == 0:
@@ -125,10 +130,6 @@ def train(args,
     # Saves the final state of the model
     logger.info("Saving model final checkpoint...")
     save_model_checkpoint(args, model, tokenizer, global_step, optimizer, scheduler)
-
-    is_save_training_to_csv = True
-    if is_save_training_to_csv:
-        save_training_to_csv(model, train_dataset, args, global_step)
 
     logger.info("***** Finished Training *****")
 
@@ -160,8 +161,7 @@ def save_model_checkpoint(args,
         logger.info("Saving optimizer and scheduler states to {}".format(output_dir))
 
 
-def save_training_to_csv(model, train_dataset, args, global_step,
-                         csv_f_name="trained_vad.csv"):
+def save_training_to_csv(model, train_dataset, args, csv_f_name="trained_vad.csv"):
     """
         saves to VAD a numpy matrix of:
         | label | predicted VAD (V) |  predicted VAD (A) |  predicted VAD (D) |
