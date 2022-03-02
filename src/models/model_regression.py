@@ -78,7 +78,6 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
         # outputs.last_hidden_state : the whole last-hidden-layer of BERT (batch_size, sequence_length, hidden_size)
         # outputs.pooler_output : [CLS] token in last hidden layer
         pooled_output = None
-        print(self.pool_mode)
         if self.pool_mode == 'cls':
             pooled_output = outputs.pooler_output
         elif self.pool_mode == 'last':
