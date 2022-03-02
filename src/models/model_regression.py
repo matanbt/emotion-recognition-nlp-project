@@ -41,7 +41,9 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
             'RMSE': lambda preds, targets : torch.sqrt(self._MSE(preds, targets)),
             'MAE': nn.L1Loss(),
             'EXP1': lambda input, target: torch.logsumexp((input - target).abs(), dim=-1).mean(),
-            'EXP2': lambda input, target: (input - target).abs().exp().mean()
+            'EXP2': lambda input, target: (input - target).abs().exp().sum(dim=-1).mean(),
+            'MAE_WEIGHTED': lambda input, target: ((input - target).abs() * torch.tensor([0.4, 0.4, 0.2])).
+                                                    sum(dim=-1).mean()
         }
 
         # Choose your loss here:
