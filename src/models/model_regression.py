@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from attrdict import AttrDict
 from transformers import BertPreTrainedModel, BertModel
 
 
@@ -12,8 +13,10 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
                  hidden_layers_count=1,
                  hidden_layer_dim=400,
                  pool_mode='cls',
+                 args: AttrDict = None,
                  **kwargs):
         super().__init__(config)
+        self.device = args.device if args else None
         self.target_dim = target_dim
         self.hidden_layers_count = hidden_layers_count
         self.hidden_layers_dim = hidden_layer_dim
@@ -21,7 +24,7 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
 
         self.bert = BertModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.act_func = nn.Sigmoid  # final activation function
+        self.act_func = nn.Sigmoid  # hidden activation function
         self.final_act_func = nn.Sigmoid()  # final activation function
 
         if hidden_layers_count == 1:
@@ -36,14 +39,15 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
             self.output_layer = nn.Sequential(*layers_lst)
 
         # Loss choices (comment-out unused losses before experimenting):
+        vad_weights = torch.tensor([0.4, 0.4, 0.2])
         losses = {
             'MSE': nn.MSELoss(),
             'RMSE': lambda preds, targets : torch.sqrt(self._MSE(preds, targets)),
             'MAE': nn.L1Loss(),
             'EXP1': lambda input, target: torch.logsumexp((input - target).abs(), dim=-1).mean(),
             'EXP2': lambda input, target: (input - target).abs().exp().sum(dim=-1).mean(),
-            'MAE_WEIGHTED': lambda input, target: ((input - target).abs() * torch.tensor([0.4, 0.4, 0.2])).
-                                                    sum(dim=-1).mean()
+            'MAE_WEIGHTED': lambda input, target: ((input - target).abs() * vad_weights)
+                                                    .sum(dim=-1).mean()
         }
 
         # Choose your loss here:

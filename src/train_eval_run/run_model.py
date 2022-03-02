@@ -32,6 +32,9 @@ def run(args, model_args, tb_writer: SummaryWriter):
 
     set_seed(args)
 
+    # GPU or CPU
+    args.device = "cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu"
+
     label_list = model_args.data_processor_class.get_labels_list(args)
 
     # Initiate all needed model's component
@@ -48,11 +51,10 @@ def run(args, model_args, tb_writer: SummaryWriter):
     model = model_args.model_class.from_pretrained(
         args.model_name_or_path,
         config=config,
+        args=args,
         **vars(model_args)
     )
 
-    # GPU or CPU
-    args.device = "cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu"
     model.to(args.device)
 
     # Process Data
