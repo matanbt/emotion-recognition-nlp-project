@@ -136,7 +136,7 @@ def special_classifiers_metrics(eval_preds, eval_labels, args):
     train_vads, train_labels = arr[:, 1:], arr[:, 0].astype(int)
 
     clfs_dict = {
-        'svm': SVC(kernel="sigmoid"),
+        'svm': SVC(C=75, gamma=1),
         '1NN': KNeighborsClassifier(1),
         'tree': DecisionTreeClassifier(criterion='entropy', random_state=0),
         'forest': RandomForestClassifier(max_depth=2, random_state=0),

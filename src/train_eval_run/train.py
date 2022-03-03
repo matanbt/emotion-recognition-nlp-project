@@ -132,6 +132,7 @@ def train(args,
     args.evaluate_special_classifiers = True  # allows classifiers eval in `compute_metrics` func
     save_training_to_csv(model, train_dataset, args)
     evaluate(args, model, model_args, tb_writer, dev_dataset, "dev", global_step)
+    args.evaluate_special_classifiers = False
 
     logger.info("***** Finished Training *****")
 
