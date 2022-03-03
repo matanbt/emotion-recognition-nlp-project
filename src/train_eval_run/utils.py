@@ -115,7 +115,8 @@ def compute_metrics_regression_vad(vad_targets, vad_preds, emo_lbl_idx_to_vad,
         results.update(compute_metrics_classification(label_targets, label_preds, f'_{metric_name}'))
 
     # train classifier on training_vads --> use it to map dev-set predictions to labels
-    results.update(special_classifiers_metrics(vad_preds, labels_targets, args))
+    if args.evaluate_special_classifiers:
+        results.update(special_classifiers_metrics(vad_preds, labels_targets, args))
 
     # Try VA metric [commented out]
     # va_preds = vad_preds[:, :2]

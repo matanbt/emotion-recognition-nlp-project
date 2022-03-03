@@ -79,6 +79,8 @@ def train(args,
     global_step = 0
     tr_loss = 0.0
 
+    args.evaluate_special_classifiers = False  # we don't allow classifiers eval while training
+
     model.zero_grad()  # TODO init the grads in an interesting way?
     train_iterator = trange(int(args.num_train_epochs), desc="Epoch")
     for _ in train_iterator:
@@ -111,11 +113,6 @@ def train(args,
                     if args.evaluate_test_during_training:
                         evaluate(args, model, model_args, tb_writer, test_dataset, "test", global_step)
                     else:
-                        # ----- # TODO find a better place for this logic
-                        is_save_training_to_csv = True
-                        if is_save_training_to_csv:
-                            save_training_to_csv(model, train_dataset, args)
-                        # ------
                         evaluate(args, model, model_args, tb_writer, dev_dataset, "dev", global_step)
 
                 if args.save_steps > 0 and global_step % args.save_steps == 0:
@@ -130,6 +127,11 @@ def train(args,
     # Saves the final state of the model
     logger.info("Saving model final checkpoint...")
     save_model_checkpoint(args, model, tokenizer, global_step, optimizer, scheduler)
+
+    logger.info("Performing final evaluation on dev-set")
+    args.evaluate_special_classifiers = True  # allows classifiers eval in `compute_metrics` func
+    save_training_to_csv(model, train_dataset, args)
+    evaluate(args, model, model_args, tb_writer, dev_dataset, "dev", global_step)
 
     logger.info("***** Finished Training *****")
 

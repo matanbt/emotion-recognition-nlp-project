@@ -85,7 +85,7 @@ def show_distribution(points, axis_num, label_name, color="g"):
 from train_eval_run.evaluate import only_eval
 NUM_OF_EXAMPLES = 2000
 
-eval_loss, targets, preds = only_eval(dev_dataset.select(range(NUM_OF_EXAMPLES)), model, model_args, 1)
+eval_loss, labels, targets, preds = only_eval(dev_dataset.select(range(NUM_OF_EXAMPLES)), model, model_args, 1)
 
 # %%
 
@@ -94,7 +94,7 @@ eval_loss, targets, preds = only_eval(dev_dataset.select(range(NUM_OF_EXAMPLES))
 from train_eval_run.evaluate import only_eval
 NUM_OF_EXAMPLES = 2000
 
-tr_eval_loss, tr_targets, tr_preds = only_eval(train_dataset.select(range(NUM_OF_EXAMPLES)), model, model_args, 1)
+tr_eval_loss, tr_labels, tr_targets, tr_preds = only_eval(train_dataset.select(range(NUM_OF_EXAMPLES)), model, model_args, 1)
 
 
 #%%

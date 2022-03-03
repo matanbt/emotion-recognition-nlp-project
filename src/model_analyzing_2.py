@@ -10,8 +10,6 @@ import json
 import numpy as np
 
 from attrdict import AttrDict
-from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
-from sklearn.neural_network import MLPClassifier
 from torch.utils.data import SequentialSampler, DataLoader
 
 from transformers import (
@@ -25,12 +23,15 @@ import pandas as pd
 
 from tqdm import tqdm
 
+
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from xgboost import XGBClassifier
 
-
+from src.train_eval_run.evaluate import only_eval
 from src.train_eval_run.utils import compute_metrics_classification
 
 
@@ -116,7 +117,7 @@ def save_training_to_csv(csv_f_name="data/trained_vad.csv"):
 
         i += 1
 
-    np.savetxt(csv_f_name, arr, delimiter=",")
+    np.savetxt(csv_f_name, arr)
 
 def vad_mapping_to_pandas(fname="data/train_vad_mapping_2.csv"):
     df = pd.read_csv(fname, usecols=['vad','labels'])
@@ -130,29 +131,19 @@ def df_to_numpy_arrays(df):
     labels = arr[:, 0].astype(int)
     return vads, labels
 
-def train_clf(clf_name, X_train, y_train, X_test, y_test):
-    clfs_dict = {
-        'svm': SVC(),
-        '1NN': KNeighborsClassifier(1),
-        'tree': DecisionTreeClassifier(criterion='entropy', random_state=0),
-        'forest': RandomForestClassifier(max_depth=2, random_state=0),
-        'ADABoost': AdaBoostClassifier(),
-        'MLP':  MLPClassifier(alpha=1, max_iter=1000),
-        'XGBoost': XGBClassifier()
-    }
-    clf = clfs_dict[clf_name]
+def train_clf(clf, X_train, y_train, X_test, y_test):
     clf.fit(X_train, y_train)
-    print(f"Classifier: {clf_name} | Got score: {clf.score(X_test, y_test)}")
+    print(f"Classifier: {clf.__class__.__name__} | Training score: {clf.score(X_train, y_train)}")
+    print(f"Classifier: {clf.__class__.__name__} | Dev score: {clf.score(X_test, y_test)}")
 
     return clf
 
-def run_clf(NUM_OF_EXAMPLES=2000):
+def run_clf(cached_eval=True):
     model_dict = load_model()
     original_vad_mapping = model_dict['data_processor'].get_emotions_vads_lst()
-    rev_original_vad_mapping = model_dict['data_processor'].get_vads_to_emotions_dict()
 
     # load training
-    arr = np.loadtxt("data/trained_vad.csv", delimiter=",")
+    arr = np.loadtxt("data/trained_vad.csv")
     train_vads, train_labels = arr[:, 1:], arr[:, 0].astype(int)
     train_targets = np.zeros((len(train_labels) ,3))
     for i, label in enumerate(train_labels):
@@ -160,31 +151,36 @@ def run_clf(NUM_OF_EXAMPLES=2000):
 
     print(f"overall MAE of training: {(abs(train_targets - train_vads)).mean()}")
 
-    clf_names = [
-        'svm',
-        '1NN',
-        'tree',
-        'forest',
-        'ADABoost',
-        'MLP',
-        'XGBoost',
-    ]
 
-    # eval_loss, labels, targets, preds = only_eval(model_dict['dev_dataset'],
-    #                                               model_dict['model'], model_dict['model_args'],
-    #                                               1)
-    labels = np.loadtxt("data/eval_labels.csv").astype(int)
-    targets = np.loadtxt("data/eval_targets.csv").astype(float)
-    preds = np.loadtxt("data/eval_preds.csv").astype(float)
-    label_targets = labels
+    clfs_dict = {
+        'svm': SVC(kernel="sigmoid"),
+        '1NN': KNeighborsClassifier(1),
+        'tree': DecisionTreeClassifier(criterion='entropy', random_state=0),
+        'forest': RandomForestClassifier(max_depth=2, random_state=0),
+        'ADABoost': AdaBoostClassifier(),
+        'MLP': MLPClassifier(alpha=1, max_iter=1000),
+        'XGBoost': XGBClassifier(use_label_encoder=False)
+    }
 
-    for clf_name in clf_names:
-        clf = train_clf(clf_name, train_vads, train_labels,
-                                  preds, label_targets)
+    if not cached_eval:
+        eval_loss, eval_labels, eval_targets, eval_preds = \
+            only_eval(model_dict['dev_dataset'],
+                      model_dict['model'], model_dict['model_args'],
+                      1)
+    else:
+        eval_labels = np.loadtxt("data/eval_labels.csv").astype(int)
+        eval_targets = np.loadtxt("data/eval_targets.csv").astype(float)
+        eval_preds = np.loadtxt("data/eval_preds.csv").astype(float)
 
-        label_preds = clf.predict(preds)
 
-        results = compute_metrics_classification(label_targets, label_preds, name_suffix=f"_{clf_name}")
+    for clf in clfs_dict.values():
+        clf = train_clf(clf, train_vads, train_labels,
+                             eval_preds, eval_labels)
+
+        eval_labels_preds = clf.predict(eval_preds)
+
+        results = compute_metrics_classification(eval_labels, eval_labels_preds,
+                                                 name_suffix=f"_{clf.__class__.__name__}")
         print(results)
 
 run_clf()
