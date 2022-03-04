@@ -95,42 +95,43 @@ def load_model():
 # %%
 import matplotlib.pyplot as plt
 
-def save_training_to_csv(csv_f_name="data/trained_vad.csv"):
-    model_dict = load_model()
-    model = model_dict['model']
-    train_dataset = model_dict['train_dataset']
+# def save_training_to_csv(csv_f_name="data/trained_vad.csv"):
+#     model_dict = load_model()
+#     model = model_dict['model']
+#     train_dataset = model_dict['train_dataset']
+#
+#     # by forward passes
+#     eval_sampler = SequentialSampler(train_dataset)
+#     eval_dataloader = DataLoader(train_dataset, sampler=eval_sampler, batch_size=1)
+#     arr = np.zeros((len(train_dataset),4))
+#     i = 0
+#
+#     for batch in tqdm(eval_dataloader, desc="Saving Forward passes to CSV"):
+#         model.eval()
+#
+#         with torch.no_grad():
+#             outputs = model(**batch)
+#             loss, logits = outputs[:2]
+#
+#             arr[i] = [train_dataset['labels'][i][0]] + list(logits.squeeze(dim=0))
+#
+#         i += 1
+#
+#     np.savetxt(csv_f_name, arr)
+#
+# def vad_mapping_to_pandas(fname="data/train_vad_mapping_2.csv"):
+#     df = pd.read_csv(fname, usecols=['vad','labels'])
+#     df['vad'] = df['vad'].apply(lambda lst: json.loads(lst))
+#
+#     return df
+#
+# def df_to_numpy_arrays(df):
+#     arr = df.to_numpy()
+#     vads = np.vstack(arr[:, 1]).astype(float)
+#     labels = arr[:, 0].astype(int)
+#     return vads, labels
 
-    # by forward passes
-    eval_sampler = SequentialSampler(train_dataset)
-    eval_dataloader = DataLoader(train_dataset, sampler=eval_sampler, batch_size=1)
-    arr = np.zeros((len(train_dataset),4))
-    i = 0
-
-    for batch in tqdm(eval_dataloader, desc="Saving Forward passes to CSV"):
-        model.eval()
-
-        with torch.no_grad():
-            outputs = model(**batch)
-            loss, logits = outputs[:2]
-
-            arr[i] = [train_dataset['labels'][i][0]] + list(logits.squeeze(dim=0))
-
-        i += 1
-
-    np.savetxt(csv_f_name, arr)
-
-def vad_mapping_to_pandas(fname="data/train_vad_mapping_2.csv"):
-    df = pd.read_csv(fname, usecols=['vad','labels'])
-    df['vad'] = df['vad'].apply(lambda lst: json.loads(lst))
-
-    return df
-
-def df_to_numpy_arrays(df):
-    arr = df.to_numpy()
-    vads = np.vstack(arr[:, 1]).astype(float)
-    labels = arr[:, 0].astype(int)
-    return vads, labels
-
+# ---------------- Classifiers Helpers ------------------------------
 def train_clf(clf, X_train, y_train, X_test, y_test):
     clf.fit(X_train, y_train)
     print(f"Classifier: {clf.__class__.__name__} | Training score: {clf.score(X_train, y_train)}")
@@ -138,39 +139,139 @@ def train_clf(clf, X_train, y_train, X_test, y_test):
 
     return clf
 
-def run_clf(cached_eval=True):
-    model_dict = load_model()
-    original_vad_mapping = model_dict['data_processor'].get_emotions_vads_lst()
+# TODO tune C as well
+def rbf_accuracy_per_gamma(X_train, y_train, X_val, y_val):
+    """
+    Returns: np.ndarray of shape (11,) :
+             An array that contains the accuracy of the
+             resulting model on the VALIDATION set.
+    """
+    print(" [RBF ACCURACY PER C] ")
+    c = 75  # penalty constant
+    gamma_labels = np.arange(-5, 6, 0.5)
+    gamma_lst = 10 ** gamma_labels
+    scores_train, scores_val = np.zeros(len(gamma_lst)), np.zeros(len(gamma_lst))
+
+    for i, gamma in enumerate(gamma_lst):
+        clf = SVC(C=c, kernel='rbf', gamma=gamma)
+        clf.fit(X_train, y_train)
+        print(f" --- Gamma = {gamma} ---")
+        print(f"--> Score on train: {clf.score(X_train, y_train)}")
+        print(f"--> Score on dev: {clf.score(X_val, y_val)}")
+        scores_train[i] = clf.score(X_train, y_train)
+        scores_val[i] = clf.score(X_val, y_val)
+        # create_plot(val_data, val_labels, clf, f"Gamma = {gamma}")
+        plt.show()
+
+    plt.clf()
+    plt.ylabel("Score")
+    plt.xlabel("log_10 of Gamma")
+    plt.title("Score as function of Gamma")
+    plt.plot(gamma_labels, scores_train, color='blue', label='Training', marker='o')
+    plt.plot(gamma_labels, scores_val, color='red', label='Validation',  marker='o')
+    plt.legend()
+    plt.show()
+
+    return scores_val
+
+
+# ---------------- END Classifiers Helpers ------------------------------
+
+
+
+# constants:
+EVAL_LABELS_CSV = "eval_labels.csv"
+EVAL_TARGETS_CSV = "eval_targets.csv"
+EVAL_PREDS_CSV = "eval_preds.csv"
+TRAIN_VAD_CSV = "trained_vad.csv"
+
+def run_clf(summary_path, cached_eval=True):
+    # ---------------- LOADING MODEL & DATA FROM CACHE ------------------------------
+
 
     # load training
-    arr = np.loadtxt("data/trained_vad.csv")
+    arr = np.loadtxt(os.path.join(summary_path, TRAIN_VAD_CSV))
     train_vads, train_labels = arr[:, 1:], arr[:, 0].astype(int)
-    train_targets = np.zeros((len(train_labels) ,3))
-    for i, label in enumerate(train_labels):
-        train_targets[i] = original_vad_mapping[label]
 
-    print(f"overall MAE of training: {(abs(train_targets - train_vads)).mean()}")
+    # >> to calculate original VADs we need the VAD mapping that was used, by LOADING THE MODEL
+    # model_dict = load_model()
+    # original_vad_mapping = model_dict['data_processor'].get_emotions_vads_lst()
+    # train_targets = np.zeros((len(train_labels) ,3))  # original VADs
+    # for i, label in enumerate(train_labels):
+    #     train_targets[i] = original_vad_mapping[label]
+    #
+    # print(f"overall MAE of training: {(abs(train_targets - train_vads)).mean()}")
 
-
-    clfs_dict = {
-        'svm': SVC(kernel="sigmoid"),
-        '1NN': KNeighborsClassifier(1),
-        'tree': DecisionTreeClassifier(criterion='entropy', random_state=0),
-        'forest': RandomForestClassifier(max_depth=2, random_state=0),
-        'ADABoost': AdaBoostClassifier(),
-        'MLP': MLPClassifier(alpha=1, max_iter=1000),
-        'XGBoost': XGBClassifier(use_label_encoder=False)
-    }
-
+    # loading eval
     if not cached_eval:
+
+        # load the model
+        model_dict = load_model()
+
         eval_loss, eval_labels, eval_targets, eval_preds = \
             only_eval(model_dict['dev_dataset'],
                       model_dict['model'], model_dict['model_args'],
                       1)
+
+        # optionally - cache the eval data (SAVES ALOT OF TIME for next time):
+        np.savetxt(os.path.join(summary_path, EVAL_LABELS_CSV), eval_labels)
+        np.savetxt(os.path.join(summary_path, EVAL_TARGETS_CSV), eval_targets)
+        np.savetxt(os.path.join(summary_path, EVAL_PREDS_CSV), eval_preds)
+        print(f"overall MAE of eval: {(abs(eval_targets - eval_preds)).mean()}")
+
     else:
-        eval_labels = np.loadtxt("data/eval_labels.csv").astype(int)
-        eval_targets = np.loadtxt("data/eval_targets.csv").astype(float)
-        eval_preds = np.loadtxt("data/eval_preds.csv").astype(float)
+        eval_labels = np.loadtxt(os.path.join(summary_path, EVAL_LABELS_CSV)).astype(int)
+        # eval_targets = np.loadtxt(os.path.join(summary_path, EVAL_TARGETS_CSV)).astype(float)
+        eval_preds = np.loadtxt(os.path.join(summary_path, EVAL_PREDS_CSV)).astype(float)
+
+    # ---------------- END LOADING MODEL & DATA FROM CACHE ------------------------------
+
+
+    # ---------------- CLFs logic - play with stuff here:  ------------------------------
+
+    clfs_dict = {
+        'svm': SVC(C=60, gamma=1),
+        # '1NN': KNeighborsClassifier(1),
+        # 'tree': DecisionTreeClassifier(criterion='entropy', random_state=0),
+        # 'forest': RandomForestClassifier(max_depth=2, random_state=0),
+        # 'ADABoost': AdaBoostClassifier(),
+        # 'MLP': MLPClassifier(alpha=1, max_iter=1000),
+        # 'XGBoost': XGBClassifier(use_label_encoder=False)
+    }
+
+    # TODO - add catboost (as another CLF)
+    # # catboost CLF: --------------------------------
+    # train_data = [["summer", 1924, 44],
+    #               ["summer", 1932, 37],
+    #               ["winter", 1980, 37],
+    #               ["summer", 2012, 204]]
+    #
+    # eval_data = [["winter", 1996, 197],
+    #              ["winter", 1968, 37],
+    #              ["summer", 2002, 77],
+    #              ["summer", 1948, 59]]
+    #
+    # cat_features = [0]
+    #
+    # train_label = [i for i in range(28)]
+    #
+    # train_dataset = Pool(data=train_vads,
+    #                      label=train_labels,
+    #                      cat_features=cat_features)
+    #
+    # eval_dataset = Pool(data=eval_data,
+    #                     label=train_label,
+    #                     cat_features=cat_features)
+    #
+    # # Initialize CatBoostClassifier
+    # model = CatBoostClassifier(iterations=10,
+    #                            learning_rate=1,
+    #                            depth=2,
+    #                            loss_function='MultiClass')
+    # # Fit model
+    # model.fit(train_dataset)
+
+    # end catboost CLF: --------------------------------
 
 
     for clf in clfs_dict.values():
@@ -183,7 +284,13 @@ def run_clf(cached_eval=True):
                                                  name_suffix=f"_{clf.__class__.__name__}")
         print(results)
 
-run_clf()
+
+# ---------------- RUNNING THE CLFs ----------------
+MAE_5_PATH = "results\EXP_WITH_CLASSIFIERS\MAE_5_summary_regression_model_04_03_2022_01_50"
+MAE_5_SCALED_3_PATH = "results\EXP_WITH_CLASSIFIERS\MAE_5_SCALED_3_summary_regression_model_04_03_2022_04_51"
+MSE_5_PATH = os.path.join("results", "EXP_WITH_CLASSIFIERS", "MSE_5_summary_regression_model_04_03_2022_12_06")
+
+run_clf(MSE_5_PATH)
 
 
 
