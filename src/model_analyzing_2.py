@@ -10,6 +10,8 @@ import json
 import numpy as np
 
 from attrdict import AttrDict
+from sklearn.metrics import precision_recall_fscore_support
+from sklearn.metrics import accuracy_score
 from torch.utils.data import SequentialSampler, DataLoader
 
 from transformers import (
@@ -139,6 +141,17 @@ def train_clf(clf, X_train, y_train, X_test, y_test):
 
     return clf
 
+def print_metrics(split, label_targets, label_preds):
+    accuracy_score = accuracy_score(label_targets, label_preds)
+    _, _, macro_f1_score, _ = precision_recall_fscore_support(label_targets,
+                                                              label_preds,
+                                                              average="macro")
+
+    print(f"---> Split: {split} || Accuracy: {accuracy_score} || macro_f1: {macro_f1_score}")
+
+    return accuracy_score, macro_f1_score
+
+
 # TODO tune C as well
 def rbf_accuracy_per_gamma(X_train, y_train, X_val, y_val):
     """
@@ -146,18 +159,21 @@ def rbf_accuracy_per_gamma(X_train, y_train, X_val, y_val):
              An array that contains the accuracy of the
              resulting model on the VALIDATION set.
     """
-    print(" [RBF ACCURACY PER C] ")
+    print(" [RBF ACCURACY PER gamma] ")
     c = 75  # penalty constant
-    gamma_labels = np.arange(-5, 6, 0.5)
-    gamma_lst = 10 ** gamma_labels
-    scores_train, scores_val = np.zeros(len(gamma_lst)), np.zeros(len(gamma_lst))
+    gamma_labels = np.arange(-3, 1, 0.5)
+    c_labels = np.arange(-3, 3, 0.5)
+    gamma_lst, c_lst = 10 ** gamma_labels, c_labels ** 10
+
+    # col0 - accuracy, col1 - macro-f1
+    acc_train, acc_val = np.zeros((len(gamma_lst), 2)), np.zeros((len(gamma_lst), 2))
 
     for i, gamma in enumerate(gamma_lst):
         clf = SVC(C=c, kernel='rbf', gamma=gamma)
         clf.fit(X_train, y_train)
         print(f" --- Gamma = {gamma} ---")
-        print(f"--> Score on train: {clf.score(X_train, y_train)}")
-        print(f"--> Score on dev: {clf.score(X_val, y_val)}")
+        print_metrics("train", X_train, y_train)
+        print_metrics("dev", X_val, y_val)
         scores_train[i] = clf.score(X_train, y_train)
         scores_val[i] = clf.score(X_val, y_val)
         # create_plot(val_data, val_labels, clf, f"Gamma = {gamma}")
@@ -228,6 +244,8 @@ def run_clf(summary_path, cached_eval=True):
 
 
     # ---------------- CLFs logic - play with stuff here:  ------------------------------
+    res = rbf_accuracy_per_gamma(train_vads, train_labels, eval_preds, eval_labels)
+    print(res)
 
     clfs_dict = {
         'svm': SVC(C=60, gamma=1),
