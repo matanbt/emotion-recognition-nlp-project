@@ -138,8 +138,8 @@ def special_classifiers_metrics(eval_preds, eval_labels, args):
     results = {}
 
     # cache the dev-set we evaluate CLFs on (so results can be recreated)
-    np.savetxt(os.path.join(args.summary_path, EVAL_LABELS_CSV))
-    np.savetxt(os.path.join(args.summary_path, EVAL_PREDS_CSV))
+    np.savetxt(os.path.join(args.summary_path, EVAL_LABELS_CSV), eval_labels)
+    np.savetxt(os.path.join(args.summary_path, EVAL_PREDS_CSV), eval_preds)
 
     # load training model results
     arr = np.loadtxt(os.path.join(args.summary_path, TRAIN_VAD_CSV))
