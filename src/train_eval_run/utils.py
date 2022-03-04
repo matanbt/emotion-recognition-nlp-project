@@ -128,11 +128,21 @@ def compute_metrics_regression_vad(vad_targets, vad_preds, emo_lbl_idx_to_vad,
 
     return results
 
+# constants:
+EVAL_LABELS_CSV = "eval_labels.csv"
+EVAL_PREDS_CSV = "eval_preds.csv"
+TRAIN_VAD_CSV = "trained_vad.csv"
+
+
 def special_classifiers_metrics(eval_preds, eval_labels, args):
     results = {}
 
+    # cache the dev-set we evaluate CLFs on (so results can be recreated)
+    np.savetxt(os.path.join(args.summary_path, EVAL_LABELS_CSV))
+    np.savetxt(os.path.join(args.summary_path, EVAL_PREDS_CSV))
+
     # load training model results
-    arr = np.loadtxt(os.path.join(args.summary_path, "trained_vad.csv"))
+    arr = np.loadtxt(os.path.join(args.summary_path, TRAIN_VAD_CSV))
     train_vads, train_labels = arr[:, 1:], arr[:, 0].astype(int)
 
     clfs_dict = {
