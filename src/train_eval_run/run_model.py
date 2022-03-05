@@ -43,7 +43,8 @@ def run(args, model_args, tb_writer: SummaryWriter):
         num_labels=len(label_list),
         finetuning_task=args.task,
         id2label={str(i): label for i, label in enumerate(label_list)},
-        label2id={label: i for i, label in enumerate(label_list)}
+        label2id={label: i for i, label in enumerate(label_list)},
+        hidden_dropout_prob=args.get('hidden_dropout_prob', 0.1)
     )
     tokenizer = BertTokenizer.from_pretrained(  # TODO - why do we use a custom tokenizer??
         args.tokenizer_name_or_path,
