@@ -6,6 +6,7 @@ from data_processing.data_loader import VADMapperName, GoEmotionsProcessor
 from models.model_baseline import BertForMultiLabelClassification
 from models.model_regression import BertForMultiDimensionRegression
 from models.model_regression_w_penalty import BertForMultiDimensionRegressionPenalty
+from models.model_regression_dual import BertForMultiDimensionRegressionAndClassification
 
 
 @dataclass
@@ -57,6 +58,9 @@ class ModelArgs:
 
     # Optional (regression-penalty oriented)
     lambda_param: float = None  # weight for penalty
+
+    # Optional (dual-model oriented)
+    alpha_param: float = None  # weight for regression in loss
 
 
     def override_with_args(self, args_to_override: dict):
@@ -117,6 +121,15 @@ classic_vad_regression_penalty_model_conf = ModelArgs("ge_regression_to_vad_with
                                                       hidden_layers_count=1,
                                                       lambda_param=0.1)
 
+dual_regression_classification_model_conf = ModelArgs("ge_classic_multi_label",
+                                                       BertForMultiDimensionRegressionAndClassification,
+                                                       GoEmotionsProcessor,
+                                                       compute_metrics_classification,
+                                                       SIGMOID_FUNC,
+                                                       "one_hot_labels",
+                                                       alpha_param=0.5,
+                                                       threshold=0.3)
+
 # experimental regression with other vad mappings
 # TODO delete these afterward
 from copy import copy
@@ -149,6 +162,7 @@ vad_naive.vad_mapper_name = VADMapperName.NAIVE
 model_choices = {
     'baseline': classic_multi_label_model_conf,
     'regression': classic_vad_regression_model_conf,
+    'dual': dual_regression_classification_model_conf,
 
 
     # experiments
