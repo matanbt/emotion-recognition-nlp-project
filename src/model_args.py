@@ -127,6 +127,10 @@ dual_regression_classification_model_conf = ModelArgs("ge_classic_multi_label",
                                                        compute_metrics_classification,
                                                        SIGMOID_FUNC,
                                                        "one_hot_labels",
+                                                       vad_mapper_name=VADMapperName.NRC,
+                                                       target_dim=3,
+                                                       hidden_layer_dim=200,
+                                                       hidden_layers_count=1,
                                                        alpha_param=0.5,
                                                        threshold=0.3)
 
