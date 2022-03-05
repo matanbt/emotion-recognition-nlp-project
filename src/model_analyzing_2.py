@@ -142,12 +142,12 @@ def train_clf(clf, X_train, y_train, X_test, y_test):
     return clf
 
 def print_metrics(split, label_targets, label_preds):
-    accuracy_score = accuracy_score(label_targets, label_preds)
+    acc_score = accuracy_score(label_targets, label_preds)
     _, _, macro_f1_score, _ = precision_recall_fscore_support(label_targets,
                                                               label_preds,
                                                               average="macro")
 
-    print(f"---> Split: {split} || Accuracy: {accuracy_score} || macro_f1: {macro_f1_score}")
+    print(f"---> Split: {split} || Accuracy: {acc_score} || macro_f1: {macro_f1_score}")
 
     return accuracy_score, macro_f1_score
 
@@ -159,36 +159,39 @@ def rbf_accuracy_per_gamma(X_train, y_train, X_val, y_val):
              An array that contains the accuracy of the
              resulting model on the VALIDATION set.
     """
-    print(" [RBF ACCURACY PER gamma] ")
-    c = 75  # penalty constant
-    gamma_labels = np.arange(-3, 1, 0.5)
-    c_labels = np.arange(-3, 3, 0.5)
-    gamma_lst, c_lst = 10 ** gamma_labels, c_labels ** 10
+    print(" [RBF ACCURACY PER (gamma, c)] ")
+    gamma_labels = np.arange(-3, 2, 0.5)
+    c_labels = np.arange(-3, 4, 0.5)
+    gamma_lst, c_lst = 10 ** gamma_labels, 10 ** c_labels
+    df_dev_f1 = pd.DataFrame(0, index=gamma_labels, columns=c_labels, dtype=float)
+    df_dev_acc = pd.DataFrame(0, index=gamma_labels, columns=c_labels, dtype=float)
+    df_train_f1 = pd.DataFrame(0, index=gamma_labels, columns=c_labels, dtype=float)
+    df_train_acc = pd.DataFrame(0, index=gamma_labels, columns=c_labels, dtype=float)
 
-    # col0 - accuracy, col1 - macro-f1
-    acc_train, acc_val = np.zeros((len(gamma_lst), 2)), np.zeros((len(gamma_lst), 2))
-
+    # tune C & GAMMA together
     for i, gamma in enumerate(gamma_lst):
-        clf = SVC(C=c, kernel='rbf', gamma=gamma)
-        clf.fit(X_train, y_train)
-        print(f" --- Gamma = {gamma} ---")
-        print_metrics("train", X_train, y_train)
-        print_metrics("dev", X_val, y_val)
-        scores_train[i] = clf.score(X_train, y_train)
-        scores_val[i] = clf.score(X_val, y_val)
-        # create_plot(val_data, val_labels, clf, f"Gamma = {gamma}")
-        plt.show()
+        for j, c in enumerate(c_lst):
+            clf = SVC(kernel='rbf', C=c, gamma=gamma)
+            print(f" ----------- Gamma = {gamma} || C = {c} -----------")
+            clf.fit(X_train, y_train)
+            train_preds = clf.predict(X_train)
+            val_preds = clf.predict(X_val)
+            df_train_acc.iloc[i, j], df_train_f1.iloc[i, j] = print_metrics("train", train_preds, y_train)
+            df_dev_acc.iloc[i, j], df_dev_f1.iloc[i,j] = print_metrics("dev", val_preds, y_val)
 
-    plt.clf()
-    plt.ylabel("Score")
-    plt.xlabel("log_10 of Gamma")
-    plt.title("Score as function of Gamma")
-    plt.plot(gamma_labels, scores_train, color='blue', label='Training', marker='o')
-    plt.plot(gamma_labels, scores_val, color='red', label='Validation',  marker='o')
-    plt.legend()
-    plt.show()
-
-    return scores_val
+    print("DONE checking parameters for SVM")
+    return df_train_acc, df_train_f1, df_dev_acc, df_dev_f1
+    # show train VS eval
+    # plt.clf()
+    # plt.ylabel("Score")
+    # plt.xlabel("log_10 of Gamma")
+    # plt.title("Score as function of Gamma")
+    # plt.plot(gamma_labels, scores_train, color='blue', label='Training', marker='o')
+    # plt.plot(gamma_labels, scores_val, color='red', label='Validation',  marker='o')
+    # plt.legend()
+    # plt.show()
+    #
+    # return scores_val
 
 
 # ---------------- END Classifiers Helpers ------------------------------
@@ -246,6 +249,11 @@ def run_clf(summary_path, cached_eval=True):
     # ---------------- CLFs logic - play with stuff here:  ------------------------------
     res = rbf_accuracy_per_gamma(train_vads, train_labels, eval_preds, eval_labels)
     print(res)
+    df_train_acc, df_train_f1, df_dev_acc, df_dev_f1 = res
+    df_train_f1.to_pickle(os.path.join(summary_path, "df_train_f1.csv"))
+    df_train_acc.to_pickle(os.path.join(summary_path, "df_train_acc.csv"))
+    df_dev_f1.to_pickle(os.path.join(summary_path, "df_dev_f1.csv"))
+    df_dev_acc.to_pickle(os.path.join(summary_path, "df_dev_acc.csv"))
 
     clfs_dict = {
         'svm': SVC(C=60, gamma=1),
@@ -304,11 +312,11 @@ def run_clf(summary_path, cached_eval=True):
 
 
 # ---------------- RUNNING THE CLFs ----------------
-MAE_5_PATH = "results\EXP_WITH_CLASSIFIERS\MAE_5_summary_regression_model_04_03_2022_01_50"
-MAE_5_SCALED_3_PATH = "results\EXP_WITH_CLASSIFIERS\MAE_5_SCALED_3_summary_regression_model_04_03_2022_04_51"
+MAE_5_PATH = "results\EXP_WITH_CLASSIFIERS\MAE_5_summary_regression_model_04_03_2022_15_11"
 MSE_5_PATH = os.path.join("results", "EXP_WITH_CLASSIFIERS", "MSE_5_summary_regression_model_04_03_2022_12_06")
+MAE_5_SCALED_3_PATH = "results\EXP_WITH_CLASSIFIERS\MAE_5_VAD_SCALED_3_summary_regression_model_04_03_2022_18_20"
 
-run_clf(MSE_5_PATH)
+run_clf(MAE_5_SCALED_3_PATH, cached_eval=True)
 
 
 
