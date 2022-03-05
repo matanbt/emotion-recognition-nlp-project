@@ -6,7 +6,7 @@
   "model_args_override": {
     "pool_mode": "mean",
     "loss_func": "MAE",
-    "lambda_param": 0.7
+    "lambda_param": 0.0
   },
 
   "data_dir": "data/goemotions",

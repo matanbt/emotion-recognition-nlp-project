@@ -10,6 +10,7 @@
   },
 
   "data_dir": "data/goemotions",
+  "nrc_vad_mapping_path": "data/mapping-emotions-to-vad/nrc-vad/NRC-VAD-Lexicon.txt",
   "output_dir": "results/bert-base-cased-goemotions-original-model",
   "train_file": "train.tsv",
   "dev_file": "dev.tsv",
