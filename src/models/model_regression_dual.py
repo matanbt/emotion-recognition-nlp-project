@@ -51,7 +51,7 @@ class BertForMultiDimensionRegressionAndClassification(BertPreTrainedModel):
         self.loss_func_regr = losses['MAE'] if (loss_func is None) else losses[loss_func]
 
         labels_count = 28
-        self.classifier = nn.Linear(self.target_dim, labels_count)
+        self.classifier = nn.Linear(config.hidden_size + self.target_dim, labels_count)
         # TODO-DUAL - add hidden layers?
         self.loss_func_classifier = nn.BCEWithLogitsLoss()
         self.lambda_param = lambda_param # regression weight in loss
@@ -105,20 +105,21 @@ class BertForMultiDimensionRegressionAndClassification(BertPreTrainedModel):
         logits_regr = self.output_layer(pooled_output)
         logits_regr = self.final_act_func(logits_regr)
 
-        # Classification Phase
-        class_logits = self.classifier(logits_regr)
+        # Classification Phase (feeded with the regression)
+        class_logits = self.classifier(torch.cat([pooled_output, logits_regr], dim=-1))
 
         outputs = (class_logits,) + outputs[2:]  # adds hidden states and attention if they are here
 
         if output_targets is not None:
             loss_regr = self.loss_func_regr(logits_regr, output_targets)
             loss_class = self.loss_func_classifier(class_logits, one_hot_labels)
-            if global_step is not None and global_step <= 19000:
-                loss = loss_regr
-            else:
-                loss = loss_class
+            # if global_step is not None and global_step <= 19000:
+            #     loss = loss_regr
+            # else:
+            #     # self.final_act_func(logits_regr).requires_grad_(False)
+            #     loss = loss_class
             # TODO-DUAL - it's possible that scaling is needed here:
-            # loss = loss_regr * self.lambda_param + loss_class * (1 - self.lambda_param)
+            loss = loss_regr * self.lambda_param + loss_class * (1 - self.lambda_param)
             outputs = (loss,) + outputs
 
         return outputs  # (loss), logits, (hidden_states), (attentions)
