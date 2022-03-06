@@ -1,5 +1,5 @@
 {
-  "desc": "test with 1 layers & -5 LR + dropout = 0.75",
+  "desc": "test with 1 layers & -5 LR + dropout = 0.075",
   "task": "regression",
 
   "model_args": "regression",
