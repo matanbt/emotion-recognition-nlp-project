@@ -111,7 +111,7 @@ class BertForMultiDimensionRegressionAndClassification(BertPreTrainedModel):
 
         if output_targets is not None:
             loss_regr = self.loss_func_regr(logits_regr, output_targets)
-            loss_class = self.loss_func_regr(class_logits, one_hot_labels)
+            loss_class = self.loss_func_classifier(class_logits, one_hot_labels)
             # TODO-DUAL - it's possible that scaling is needed here:
             loss = loss_regr * self.alpha_param + loss_class * (1 - self.alpha_param)
             outputs = (loss,) + outputs
