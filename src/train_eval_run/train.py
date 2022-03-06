@@ -87,7 +87,7 @@ def train(args,
         epoch_iterator = tqdm(train_dataloader, desc="Iteration")
         for step, batch in enumerate(epoch_iterator):
             model.train()
-            outputs = model(**batch)
+            outputs = model(**batch, global_step=global_step)
 
             loss = outputs[0]
 
@@ -100,6 +100,7 @@ def train(args,
                     args.gradient_accumulation_steps >= len(train_dataloader) == (step + 1)
             ):
                 # logs the training loss
+                logger.info(f"training loss in step [{global_step}] is: {loss.item()}")
                 tb_writer.add_scalars("training", {'loss': loss.item()}, global_step=global_step)
 
                 torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
@@ -130,7 +131,7 @@ def train(args,
 
     logger.info("Performing final evaluation on dev-set")
     args.evaluate_special_classifiers = True  # allows classifiers eval in `compute_metrics` func
-    save_training_to_csv(model, train_dataset, args)
+    # save_training_to_csv(model, train_dataset, args)
     evaluate(args, model, model_args, tb_writer, dev_dataset, "dev", global_step)
     args.evaluate_special_classifiers = False
 

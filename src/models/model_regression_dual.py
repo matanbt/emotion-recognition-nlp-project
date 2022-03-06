@@ -13,7 +13,7 @@ class BertForMultiDimensionRegressionAndClassification(BertPreTrainedModel):
                  hidden_layers_count=1,
                  hidden_layer_dim=400,
                  pool_mode='mean',
-                 alpha_param: float = 0.5,
+                 lambda_param: float = 0.5,
                  args: AttrDict = None,
                  **kwargs):
         super().__init__(config)
@@ -54,7 +54,7 @@ class BertForMultiDimensionRegressionAndClassification(BertPreTrainedModel):
         self.classifier = nn.Linear(self.target_dim, labels_count)
         # TODO-DUAL - add hidden layers?
         self.loss_func_classifier = nn.BCEWithLogitsLoss()
-        self.alpha_param = alpha_param # regression weight in loss
+        self.lambda_param = lambda_param # regression weight in loss
 
         self.init_weights()
 
@@ -76,6 +76,7 @@ class BertForMultiDimensionRegressionAndClassification(BertPreTrainedModel):
             vad - if vad argument is present, is overrides outputs_target
         """
         output_targets = output_targets if vad is None else vad
+        global_step = kwargs.get('global_step')
 
         outputs = self.bert(
             input_ids,
@@ -112,8 +113,12 @@ class BertForMultiDimensionRegressionAndClassification(BertPreTrainedModel):
         if output_targets is not None:
             loss_regr = self.loss_func_regr(logits_regr, output_targets)
             loss_class = self.loss_func_classifier(class_logits, one_hot_labels)
+            if global_step is not None and global_step <= 19000:
+                loss = loss_regr
+            else:
+                loss = loss_class
             # TODO-DUAL - it's possible that scaling is needed here:
-            loss = loss_regr * self.alpha_param + loss_class * (1 - self.alpha_param)
+            # loss = loss_regr * self.lambda_param + loss_class * (1 - self.lambda_param)
             outputs = (loss,) + outputs
 
         return outputs  # (loss), logits, (hidden_states), (attentions)
