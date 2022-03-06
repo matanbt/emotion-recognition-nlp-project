@@ -47,7 +47,7 @@ def evaluate(args,
         preds[preds > model_args.threshold] = 1
         preds[preds <= model_args.threshold] = 0
 
-    if model_args.emotions_vads_lst is None:  # classification case
+    if args.task == "classification":  # classification case
         result = model_args.compute_metrics(targets, preds)
     else:  # regression case
         result = model_args.compute_metrics(targets, preds, model_args.emotions_vads_lst,
