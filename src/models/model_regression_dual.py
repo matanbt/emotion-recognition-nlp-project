@@ -105,7 +105,7 @@ class BertForMultiDimensionRegressionAndClassification(BertPreTrainedModel):
         logits_regr = self.output_layer(pooled_output)
         logits_regr = self.final_act_func(logits_regr)
 
-        # Classification Phase (feeded with the regression)
+        # Classification Phase (fed with the regression)
         class_logits = self.classifier(torch.cat([pooled_output, logits_regr], dim=-1))
 
         outputs = (class_logits,) + outputs[2:]  # adds hidden states and attention if they are here
@@ -113,13 +113,13 @@ class BertForMultiDimensionRegressionAndClassification(BertPreTrainedModel):
         if output_targets is not None:
             loss_regr = self.loss_func_regr(logits_regr, output_targets)
             loss_class = self.loss_func_classifier(class_logits, one_hot_labels)
-            # if global_step is not None and global_step <= 19000:
-            #     loss = loss_regr
-            # else:
-            #     # self.final_act_func(logits_regr).requires_grad_(False)
-            #     loss = loss_class
+            if global_step is not None and global_step <= 18000:
+                 loss = loss_regr
+            else:
+                 # self.final_act_func(logits_regr).requires_grad_(False)
+                 loss = loss_class * 0.9 + loss_regr * 0.1
             # TODO-DUAL - it's possible that scaling is needed here:
-            loss = loss_regr * self.lambda_param + loss_class * (1 - self.lambda_param)
+            #loss = loss_regr * self.lambda_param + loss_class * (1 - self.lambda_param)
             outputs = (loss,) + outputs
 
         return outputs  # (loss), logits, (hidden_states), (attentions)
