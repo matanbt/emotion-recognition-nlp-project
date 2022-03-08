@@ -56,7 +56,15 @@ class BertForMultiDimensionRegressionAndClassification(BertPreTrainedModel):
         self.loss_func_classifier = nn.BCEWithLogitsLoss()
         self.lambda_param = lambda_param # regression weight in loss
 
+        # Initialize weights:
         self.init_weights()
+
+        if isinstance(self.output_layer, nn.Linear):
+            torch.nn.init.xavier_uniform_(self.output_layer.weight)
+
+        torch.nn.init.xavier_uniform_(self.classifier.weight)
+        # we give a weight-"bias" as a hint for the VAD goodness
+        self.classifier.weight.data[:, -self.target_dim:] = self.classifier.weight.data.max() * 2
 
     def forward(
             self,
