@@ -124,8 +124,14 @@ class BertForMultiDimensionRegressionAndClassification(BertPreTrainedModel):
             if global_step is not None and global_step <= 18000:
                  loss = loss_regr
             else:
-                 # self.final_act_func(logits_regr).requires_grad_(False)
-                 loss = loss_class * 0.9 + loss_regr * 0.1
+                # Freeze BERT phase
+                self.bert.requires_grad_(False)
+                # Freeze regression phase
+                self.dropout.requires_grad_(False)
+                self.output_layer.requires_grad_(False)
+                self.final_act_func.requires_grad_(False)
+                #
+                loss = loss_class
             # TODO-DUAL - it's possible that scaling is needed here:
             #loss = loss_regr * self.lambda_param + loss_class * (1 - self.lambda_param)
             outputs = (loss,) + outputs
