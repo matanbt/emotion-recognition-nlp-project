@@ -58,7 +58,7 @@ def evaluate(args,
         logger.info(labels)
         logger.info("= EVAL targets END ")
 
-        model_args.compute_metrics(labels, preds.argmax(axis=-1))
+        result = model_args.compute_metrics(labels, preds.argmax(axis=-1))
 
     elif args.task == "classification":  # classification case
         preds[preds > model_args.threshold] = 1
