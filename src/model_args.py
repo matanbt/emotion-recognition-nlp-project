@@ -7,6 +7,7 @@ from models.model_baseline import BertForMultiLabelClassification
 from models.model_regression import BertForMultiDimensionRegression
 from models.model_regression_w_penalty import BertForMultiDimensionRegressionPenalty
 from models.model_regression_dual import BertForMultiDimensionRegressionAndClassification
+from models.model_class_via_vad import BertForClassificationViaVAD
 
 
 @dataclass
@@ -134,6 +135,19 @@ dual_regression_classification_model_conf = ModelArgs("ge_classic_multi_label",
                                                        alpha_param=0.5,
                                                        threshold=0.3)
 
+class_via_vad_model_conf = ModelArgs("ge_classic_multi_label",
+                                       BertForClassificationViaVAD,
+                                       GoEmotionsProcessor,
+                                       compute_metrics_classification,
+                                       IDENTITY_FUNC,
+                                       "one_hot_labels",
+                                       vad_mapper_name=VADMapperName.NRC,
+                                       target_dim=3,
+                                       hidden_layer_dim=200,
+                                       hidden_layers_count=1,
+                                       alpha_param=0.5,
+                                       threshold=0.3)
+
 # experimental regression with other vad mappings
 # TODO delete these afterward
 from copy import copy
@@ -167,6 +181,7 @@ model_choices = {
     'baseline': classic_multi_label_model_conf,
     'regression': classic_vad_regression_model_conf,
     'dual': dual_regression_classification_model_conf,
+    'via_vad': class_via_vad_model_conf,
 
 
     # experiments
