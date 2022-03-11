@@ -44,20 +44,7 @@ def evaluate(args,
         "loss": eval_loss
     }
 
-    if args.task == "single-classification":
-        logger.info("EVAL PREDS BEFORE THRESH = ")
-        logger.info(preds.shape)
-        logger.info(preds)
-        logger.info("= EVAL PREDS BEFORE THRESH END ")
-        logger.info("EVAL PREDS = ")
-        logger.info(preds.shape)
-        logger.info(preds)
-        logger.info("= EVAL PREDS END ")
-        logger.info("EVAL targets = ")
-        logger.info(labels.shape)
-        logger.info(labels)
-        logger.info("= EVAL targets END ")
-
+    if args.task == "one_label_classification":
         result = model_args.compute_metrics(labels, preds.argmax(axis=-1))
 
     elif args.task == "classification":  # classification case

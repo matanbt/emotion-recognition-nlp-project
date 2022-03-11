@@ -4,7 +4,7 @@ from attrdict import AttrDict
 from transformers import BertPreTrainedModel, BertModel
 
 
-class BertForClassificationViaVAD(BertPreTrainedModel):
+class BertForMultiDimensionRegressionAndClassification(BertPreTrainedModel):
 
     def __init__(self,
                  config,
@@ -41,7 +41,6 @@ class BertForClassificationViaVAD(BertPreTrainedModel):
         # Loss choices (comment-out unused losses before experimenting):
         losses = {
             'MSE': nn.MSELoss(),
-            'RMSE': lambda preds, targets : torch.sqrt(self._MSE(preds, targets)),
             'MAE': nn.L1Loss(),
             'EXP1': lambda input, target: torch.logsumexp((input - target).abs(), dim=-1).mean(),
             'EXP2': lambda input, target: (input - target).abs().exp().sum(dim=-1).mean(),
@@ -51,10 +50,9 @@ class BertForClassificationViaVAD(BertPreTrainedModel):
         self.loss_func_regr = losses['MAE'] if (loss_func is None) else losses[loss_func]
 
         labels_count = 28
-        self.classifier = nn.Linear(self.target_dim, labels_count)
-        # TODO-DUAL - add hidden layers?
-        self.loss_func_classifier = nn.CrossEntropyLoss()
-        self.lambda_param = lambda_param  # regression weight in loss
+        self.classifier = nn.Linear(config.hidden_size + self.target_dim, labels_count)
+        self.loss_func_classifier = nn.BCEWithLogitsLoss()
+        self.lambda_param = lambda_param # regression weight in loss
 
         # Initialize weights:
         self.init_weights()
@@ -64,7 +62,7 @@ class BertForClassificationViaVAD(BertPreTrainedModel):
 
         torch.nn.init.xavier_uniform_(self.classifier.weight)
         # we give a weight-"bias" as a hint for the VAD goodness
-        # self.classifier.weight.data[:, -self.target_dim:] = self.classifier.weight.data.max() * 2
+        self.classifier.weight.data[:, -self.target_dim:] = self.classifier.weight.data.max() * 2
 
     def forward(
             self,
@@ -114,25 +112,25 @@ class BertForClassificationViaVAD(BertPreTrainedModel):
         logits_regr = self.final_act_func(logits_regr)
 
         # Classification Phase (fed with the regression)
-        class_logits = self.classifier(logits_regr)
+        class_logits = self.classifier(torch.cat([pooled_output, logits_regr], dim=-1))
 
         outputs = (class_logits,) + outputs[2:]  # adds hidden states and attention if they are here
 
         if output_targets is not None:
             loss_regr = self.loss_func_regr(logits_regr, output_targets)
-            loss_class = self.loss_func_classifier(class_logits, one_hot_labels.argmax(dim=-1))
-            if global_step is not None and global_step <= 22000:
-                loss = loss_regr
+            loss_class = self.loss_func_classifier(class_logits, one_hot_labels)
+            if global_step is not None and global_step <= 18000:
+                 loss = loss_regr
             else:
+                # Freeze BERT phase
+                # self.bert.requires_grad_(False)
                 # Freeze regression phase
-                # for param in self.bert.parameters():
-                #     param.requires_grad_(False)
                 # self.dropout.requires_grad_(False)
                 # self.output_layer.requires_grad_(False)
                 # self.final_act_func.requires_grad_(False)
 
                 loss = loss_class
-            # TODO-DUAL - it's possible that scaling is needed here:
+            # Mixing:
             # loss = loss_regr * self.lambda_param + loss_class * (1 - self.lambda_param)
             outputs = (loss,) + outputs
 

@@ -1,6 +1,6 @@
 {
   "desc": "Dual model to train bot classification and regerssion",
-  "task": "single-classification",
+  "task": "one_label_classification",
 
   "model_args": "via_vad",
   "model_args_override": {

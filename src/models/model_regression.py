@@ -39,15 +39,11 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
             self.output_layer = nn.Sequential(*layers_lst)
 
         # Loss choices (comment-out unused losses before experimenting):
-        vad_weights = torch.tensor([0.4, 0.4, 0.2], device=self.mDevice)
         losses = {
             'MSE': nn.MSELoss(),
-            'RMSE': lambda preds, targets : torch.sqrt(self._MSE(preds, targets)),
             'MAE': nn.L1Loss(),
             'EXP1': lambda input, target: torch.logsumexp((input - target).abs(), dim=-1).mean(),
             'EXP2': lambda input, target: (input - target).abs().exp().sum(dim=-1).mean(),
-            'MAE_WEIGHTED': lambda input, target: ((input - target).abs() * vad_weights)
-                                                    .sum(dim=-1).mean()
         }
 
         # Choose your loss here:
