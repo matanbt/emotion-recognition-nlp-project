@@ -6,7 +6,7 @@ from data_processing.data_loader import VADMapperName, GoEmotionsProcessor
 from models.model_baseline import BertForMultiLabelClassification
 from models.model_regression import BertForMultiDimensionRegression
 from models.model_regression_w_penalty import BertForMultiDimensionRegressionPenalty
-from models.model_regression_dual import BertForMultiDimensionRegressionAndClassification
+from models.model_regression_concat import BertForMultiDimensionRegressionAndClassification
 from models.model_class_via_vad import BertForClassificationViaVAD
 
 
