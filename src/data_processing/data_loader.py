@@ -25,6 +25,7 @@ class VADMapperName(Enum):
     SCALED_NRC_4 = "Mapping by NRC, scaled with QuantileTransformer(n_quantiles=18)"
     SCALED_NRC_5 = "Mapping by NRC, scaled with QuantileTransformer(n_quantiles=10)"
     SCALED_NRC_6 = "Mapping by NRC, scaled with QuantileTransformer(n_quantiles=5)"
+    NRC1000 = "Mapping by NRC, multiplied by 1000"
 
     # baseline for VAD mappings, to prove that a good mapping helps.
     NAIVE = "Mapping naively, by defining evenly spaced VADs"
@@ -46,6 +47,12 @@ class VADMapper:
         if vad_mapper_name is VADMapperName.NRC:
             logger.info("VADMapper using NRC for VAD mappings.")
             df_nrc = data_utils.get_nrc_vad_mapping(args.nrc_vad_mapping_path, labels_names_list)
+            self.label_idx_to_vad_mapping = df_nrc.values.tolist()
+
+        elif vad_mapper_name is VADMapperName.NRC1000:
+            logger.info("VADMapper using NRC for VAD mappings, multiplied by 1000.")
+            df_nrc = data_utils.get_nrc_vad_mapping(args.nrc_vad_mapping_path,
+                                                    labels_names_list) * 1000
             self.label_idx_to_vad_mapping = df_nrc.values.tolist()
 
         elif vad_mapper_name in (VADMapperName.SCALED_NRC_1, VADMapperName.SCALED_NRC_2,

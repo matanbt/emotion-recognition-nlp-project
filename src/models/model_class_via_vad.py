@@ -3,36 +3,29 @@ import torch.nn as nn
 from attrdict import AttrDict
 from transformers import BertPreTrainedModel, BertModel
 
-from src.data_processing.data_loader import VADMapperName
 
-
-class BertForMultiDimensionRegression(BertPreTrainedModel):
+class BertForClassificationViaVAD(BertPreTrainedModel):
 
     def __init__(self,
                  config,
-                 loss_func: str = None,
+                 loss_func: str = None,  # for regression
                  target_dim=3,
                  hidden_layers_count=1,
                  hidden_layer_dim=400,
-                 pool_mode='cls',
+                 pool_mode='mean',
+                 lambda_param: float = 0.5,
                  args: AttrDict = None,
                  **kwargs):
         super().__init__(config)
-        self.mDevice = args.device if args else None
         self.target_dim = target_dim
         self.hidden_layers_count = hidden_layers_count
         self.hidden_layers_dim = hidden_layer_dim
-        self.pool_mode = pool_mode if pool_mode is not None else 'cls'
+        self.pool_mode = pool_mode if pool_mode is not None else 'mean'
 
         self.bert = BertModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.act_func = nn.Sigmoid  # hidden activation function
         self.final_act_func = nn.Sigmoid()  # final activation function
-
-        if kwargs.get('vad_mapper_name') is VADMapperName.NRC1000:
-            lower_bound = torch.tensor(0, device=args.device)
-            upper_bound = torch.tensor(1000, device=args.device)
-            self.final_act_func = lambda tensor: torch.minimum(torch.maximum(tensor, lower_bound), upper_bound)
 
         if hidden_layers_count == 1:
             self.output_layer = nn.Linear(config.hidden_size, self.target_dim)
@@ -48,15 +41,30 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
         # Loss choices (comment-out unused losses before experimenting):
         losses = {
             'MSE': nn.MSELoss(),
+            'RMSE': lambda preds, targets : torch.sqrt(self._MSE(preds, targets)),
             'MAE': nn.L1Loss(),
             'EXP1': lambda input, target: torch.logsumexp((input - target).abs(), dim=-1).mean(),
             'EXP2': lambda input, target: (input - target).abs().exp().sum(dim=-1).mean(),
         }
 
         # Choose your loss here:
-        self.loss_func = losses['MAE'] if (loss_func is None) else losses[loss_func]
+        self.loss_func_regr = losses['MAE'] if (loss_func is None) else losses[loss_func]
 
+        labels_count = 28
+        self.classifier = nn.Linear(self.target_dim, labels_count)
+        # TODO-DUAL - add hidden layers?
+        self.loss_func_classifier = nn.CrossEntropyLoss()
+        self.lambda_param = lambda_param  # regression weight in loss
+
+        # Initialize weights:
         self.init_weights()
+
+        if isinstance(self.output_layer, nn.Linear):
+            torch.nn.init.xavier_uniform_(self.output_layer.weight)
+
+        torch.nn.init.xavier_uniform_(self.classifier.weight)
+        # we give a weight-"bias" as a hint for the VAD goodness
+        # self.classifier.weight.data[:, -self.target_dim:] = self.classifier.weight.data.max() * 2
 
     def forward(
             self,
@@ -67,6 +75,7 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
             head_mask=None,
             inputs_embeds=None,
             output_targets=None,
+            one_hot_labels=None,
             vad=None,
             **kwargs
     ):
@@ -75,6 +84,7 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
             vad - if vad argument is present, is overrides outputs_target
         """
         output_targets = output_targets if vad is None else vad
+        global_step = kwargs.get('global_step')
 
         outputs = self.bert(
             input_ids,
@@ -98,14 +108,32 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
         else:
             raise ValueError(f"Given pool_mode `{self.pool_mode}` is invalid.")
 
+        # Regression Phase
         pooled_output = self.dropout(pooled_output)
-        logits = self.output_layer(pooled_output)
-        logits = self.final_act_func(logits)
+        logits_regr = self.output_layer(pooled_output)
+        logits_regr = self.final_act_func(logits_regr)
 
-        outputs = (logits,) + outputs[2:]  # adds hidden states and attention if they are here
+        # Classification Phase (fed with the regression)
+        class_logits = self.classifier(logits_regr)
+
+        outputs = (class_logits,) + outputs[2:]  # adds hidden states and attention if they are here
 
         if output_targets is not None:
-            loss = self.loss_func(logits, output_targets)
+            loss_regr = self.loss_func_regr(logits_regr, output_targets)
+            loss_class = self.loss_func_classifier(class_logits, one_hot_labels.argmax(dim=-1))
+            if global_step is not None and global_step <= 22000:
+                loss = loss_regr
+            else:
+                # Freeze regression phase
+                # for param in self.bert.parameters():
+                #     param.requires_grad_(False)
+                # self.dropout.requires_grad_(False)
+                # self.output_layer.requires_grad_(False)
+                # self.final_act_func.requires_grad_(False)
+
+                loss = loss_class
+            # TODO-DUAL - it's possible that scaling is needed here:
+            # loss = loss_regr * self.lambda_param + loss_class * (1 - self.lambda_param)
             outputs = (loss,) + outputs
 
         return outputs  # (loss), logits, (hidden_states), (attentions)
