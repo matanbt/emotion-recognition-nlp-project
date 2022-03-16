@@ -3,7 +3,7 @@ import torch.nn as nn
 from attrdict import AttrDict
 from transformers import BertPreTrainedModel, BertModel
 
-from src.data_processing.data_loader import VADMapperName
+from data_processing.data_loader import VADMapperName
 
 
 class BertForMultiDimensionRegression(BertPreTrainedModel):
@@ -27,12 +27,14 @@ class BertForMultiDimensionRegression(BertPreTrainedModel):
         self.bert = BertModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.act_func = nn.Sigmoid  # hidden activation function
-        self.final_act_func = nn.Sigmoid()  # final activation function
 
         if kwargs.get('vad_mapper_name') is VADMapperName.NRC1000:
             lower_bound = torch.tensor(0, device=args.device)
             upper_bound = torch.tensor(1000, device=args.device)
             self.final_act_func = lambda tensor: torch.minimum(torch.maximum(tensor, lower_bound), upper_bound)
+        else:
+            self.final_act_func = nn.Sigmoid()  # final activation function
+
 
         if hidden_layers_count == 1:
             self.output_layer = nn.Linear(config.hidden_size, self.target_dim)
