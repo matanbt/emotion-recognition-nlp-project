@@ -4,8 +4,15 @@
 
  `$ python main.py --config {my-config-file.json}`
 
-Where `config.json` is a configuration file located in `./config` 
-(for more about the *config* read `config/config-wiki.md`).
+Where `config.json` is a configuration file located in `./config`.
+
+- In order to reproduce the paper's experiments you may use the following table:
+| Experiment      | Config                   |
+| -----------     | -----------              |
+| MAE             | `paper_exp/mae_lr5.json`   |
+| MSE             | ...        |
+| *****           | *****         |
+| *****           | *****         |
 
 
 ## Directories and Files
