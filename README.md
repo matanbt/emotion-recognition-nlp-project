@@ -10,10 +10,14 @@ Where `config.json` is a configuration file located in `./config`.
 
 | Experiment      | Config                   |
 | -----------     | -----------              |
-| MAE             | `paper_exp/mae_lr5.json`   |
-| MSE             | ...        |
-| *****           | *****         |
-| *****           | *****         |
+| MAE, 1NN             | `paper_exp/mae_lr5.json`   |
+| MAE, SVM        | `paper_exp/mae_lr5.json`   |
+| MSE, 1NN             | ...        |
+| MAE+CE, 1NN           | *****    
+| MAE, VAD scaling 1, 1NN           | *****    
+| MAE, VAD scaling 2, 1NN       | *****
+| MAE, VAD scaling 2, SVM           | *****   
+
 
 
 ## Directories and Files
