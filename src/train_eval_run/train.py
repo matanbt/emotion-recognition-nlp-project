@@ -114,7 +114,7 @@ def train(args,
                     if args.evaluate_test_during_training:
                         evaluate(args, model, model_args, tb_writer, test_dataset, "test", global_step)
                     else:
-                        if args.get('save_forward_passes'):
+                        if args.get('save_forward_passes') and global_step >= 15000:
                             args.evaluate_special_classifiers = True  # allows classifiers eval in `compute_metrics` func
                             save_training_to_csv(model, train_dataset, args)  # comment this out if not used
                         evaluate(args, model, model_args, tb_writer, dev_dataset, "dev", global_step)
