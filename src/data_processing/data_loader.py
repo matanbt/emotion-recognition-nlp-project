@@ -237,6 +237,12 @@ class GoEmotionsProcessor(BaseProcessor):
         # sets the relevant columns as tensors
         self._cast_to_tensors()
 
+    def process_example(self, text):
+        return data_utils.add_tokenization_features_example(text, self.tokenizer, self.max_length)
+
+    def process_new_dataset(self, dataset: DatasetDict, max_length):
+        return data_utils.add_tokenization_features(dataset, self.tokenizer, max_length)
+
     def calc_min_distance_for_each_vad_dim(self):
 
         # helper function

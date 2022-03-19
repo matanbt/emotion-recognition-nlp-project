@@ -19,6 +19,13 @@ def add_tokenization_features(dataset: DatasetDict, tokenizer, max_length) -> Da
 
     return dataset.map(_hf_batch_mapper__tokenize, batched=True)  # map() is not in-place
 
+def add_tokenization_features_example(example, tokenizer, max_length) -> dict:
+    """
+        Same as `add_tokenization_features` but with one example
+        Useful for model's pipeline.
+    """
+    return tokenizer(example['text'], max_length=max_length,
+                     padding='max_length', truncation=True, return_tensors='pt')
 
 # GoEmotions Utils
 go_emotions_cached_labels_list = None
