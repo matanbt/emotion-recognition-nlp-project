@@ -176,6 +176,9 @@ vad_naive.vad_mapper_name = VADMapperName.NAIVE
 vad_1000 = copy(classic_vad_regression_model_conf)
 vad_1000.vad_mapper_name = VADMapperName.NRC1000
 
+vad_random_uniform = copy(classic_vad_regression_model_conf)
+vad_random_uniform.vad_mapper_name = VADMapperName.RANDOM_UNIFORM
+
 # ---------------------------
 # We can add more ModelArgs instances here...
 # ---------------------------------------------------------------------
@@ -197,6 +200,7 @@ model_choices = {
     'vad_scaled_nrc_6': vad_scaled_nrc_6,
     'vad_naive': vad_naive,
     'vad_1000': vad_1000,
+    'vad_random_uniform': vad_random_uniform,
 
     # --- regression with penalty ---
     'regression_penalty': classic_vad_regression_penalty_model_conf,

@@ -11,7 +11,7 @@ from enum import Enum
 import pandas as pd
 
 NRC_VAD_LEXICON_PATH = "../data/mapping-emotions-to-vad/nrc-vad/NRC-VAD-Lexicon.txt"
-
+RANDOM_UNIFORM_28_POINTS_VAD_SPACE = [(0.9654290681605461, 0.7810771796285593, 0.4768636002935215), (0.7373966731895499, 0.7122276276979275, 0.4947215068494365), (0.6841013792263198, 0.8809669493091409, 0.6610419253316695), (0.3521918512858728, 0.39930532523910756, 0.2911827841339677), (0.7650014821503568, 0.47233924377871983, 0.17455953282087977), (0.7690961591751533, 0.9242248607972423, 0.23398509695659053), (0.48410824561164845, 0.8794289429243328, 0.4167677853971644), (0.662290910696874, 0.9437455295744083, 0.6882889095840883), (0.5433498644720054, 0.17299684899029055, 0.9818494961462796), (0.17022376506820014, 0.5873928155135671, 0.22513044256346615), (0.6010017469161022, 0.18571961395133862, 0.15045425243564214), (0.38610203560749823, 0.577605318981289, 0.21899549487503667), (0.500139293912145, 0.04853269659565196, 0.4724691915942453), (0.6828254609604009, 0.9678248132734697, 0.4286237722214987), (0.5683420059179503, 0.9192562372931478, 0.6285780332014991), (0.7289428520747615, 0.4638312438164799, 0.8945462777249052), (0.6150695866704562, 0.5952760543752944, 0.007797992713616364), (0.4937254068527138, 0.25393122026052384, 0.29903009827380855), (0.1324345322630357, 0.03782365342178218, 0.9200629040032965), (0.1550001386592068, 0.04840202567938734, 0.4588001997625426), (0.8983050791286917, 0.7543552186427225, 0.495002014737028), (0.9708656320285785, 0.8925874272286406, 0.49663278956786594), (0.6410405327567263, 0.9476706417519792, 0.5246646641888845), (0.7735122314859783, 0.20746667085165338, 0.7362661616860379), (0.027141697328987524, 0.6048989822639763, 0.07308764456686856), (0.0021745931270553687, 0.9352963584306079, 0.03344494256464425), (0.07135336798138592, 0.3433426684186681, 0.1809256274226031), (0.10299168124185809, 0.35790667900678297, 0.3615576586816426)]
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------
@@ -29,6 +29,7 @@ class VADMapperName(Enum):
 
     # baseline for VAD mappings, to prove that a good mapping helps.
     NAIVE = "Mapping naively, by defining evenly spaced VADs"
+    RANDOM_UNIFORM = "Mapping by random points generated from uniform distribution and scaled with QuantileTransformer(n_quantiles=28)"
 
 
 class VADMapper:
@@ -42,6 +43,7 @@ class VADMapper:
         vad_mapper_name - the dataset the mapper shall be set to, an instance of VADMapperName
         labels_names_list - each label in its corresponding index
         """
+        from sklearn.preprocessing import QuantileTransformer
         self.label_idx_to_vad_mapping = None
 
         if vad_mapper_name is VADMapperName.NRC:
@@ -58,7 +60,7 @@ class VADMapper:
         elif vad_mapper_name in (VADMapperName.SCALED_NRC_1, VADMapperName.SCALED_NRC_2,
                                  VADMapperName.SCALED_NRC_3, VADMapperName.SCALED_NRC_4,
                                  VADMapperName.SCALED_NRC_5, VADMapperName.SCALED_NRC_6):
-            from sklearn.preprocessing import QuantileTransformer
+
             n_quantiles = 28  # default (SCALED_NRC_1)
             if vad_mapper_name is VADMapperName.SCALED_NRC_2:
                 n_quantiles = 15
@@ -88,6 +90,14 @@ class VADMapper:
             for i in range(_vad_dim):
                 self.label_idx_to_vad_mapping[:, i] = np.arange(0, 1 + _even_space, _even_space)
             self.label_idx_to_vad_mapping = self.label_idx_to_vad_mapping.tolist()
+
+        elif vad_mapper_name is VADMapperName.RANDOM_UNIFORM:
+
+            scaler = QuantileTransformer(n_quantiles=28,
+                                         output_distribution='uniform')
+            self.label_idx_to_vad_mapping = scaler.fit_transform(RANDOM_UNIFORM_28_POINTS_VAD_SPACE)
+            print(self.label_idx_to_vad_mapping.tolist())
+
 
         else:
             raise Exception(f"ERROR - Unexpected VADMapperName, please handle {vad_mapper_name} "
