@@ -42,3 +42,7 @@ Where `config.json` is a configuration file located in `./config`.
 - pandas
 - tensorboard
 - sklearn
+
+## Acknowledgements
+- We loosely based the core implementation of the model, on the PyTorch GoEmotions baseline implementation by @monologg, in [this repo](https://github.com/monologg/GoEmotions-pytorch).
+- We found much use in the unified collection of emotions-related datasets, in [this repo](https://github.com/sarnthil/unify-emotion-datasets)

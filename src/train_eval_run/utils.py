@@ -147,12 +147,12 @@ def special_classifiers_metrics(eval_preds, eval_labels, args):
 
     clfs_dict = {
         'svm': SVC(C=10, gamma=3.5),
-        '1NN': KNeighborsClassifier(1),
-        'tree': DecisionTreeClassifier(criterion='entropy', random_state=0),
-        'forest': RandomForestClassifier(max_depth=2, random_state=0),
-        'ADABoost': AdaBoostClassifier(),
-        'MLP': MLPClassifier(alpha=1, max_iter=1000),
-        'XGBoost': XGBClassifier(use_label_encoder=False)
+        # '1NN': KNeighborsClassifier(1),
+        # 'tree': DecisionTreeClassifier(criterion='entropy', random_state=0),
+        # 'forest': RandomForestClassifier(max_depth=2, random_state=0),
+        # 'ADABoost': AdaBoostClassifier(),
+        # 'MLP': MLPClassifier(alpha=1, max_iter=1000),
+        # 'XGBoost': XGBClassifier(use_label_encoder=False)
     }
 
     for clf_name, clf in clfs_dict.items():
