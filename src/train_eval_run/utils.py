@@ -12,11 +12,11 @@ import numpy as np
 from sklearn.metrics import precision_recall_fscore_support, accuracy_score
 from sklearn.metrics import r2_score, mean_squared_error
 
+from sklearn.svm import SVC
 from sklearn.neighbors import NearestNeighbors
 
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.neural_network import MLPClassifier
-from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from xgboost import XGBClassifier
@@ -79,7 +79,7 @@ def compute_metrics_classification(label_targets, label_preds, name_suffix=''):
 
 
 def compute_metrics_regression_vad(vad_targets, vad_preds, emo_lbl_idx_to_vad,
-                                   labels_targets, args):
+                                   labels_targets, mode, args):
     """ emo_lbl_idx_to_vad - list of the emotions' vad values (ordered by the emotions' labels order) """
     assert len(vad_preds) == len(vad_targets)
     results = dict()
@@ -116,7 +116,7 @@ def compute_metrics_regression_vad(vad_targets, vad_preds, emo_lbl_idx_to_vad,
 
     # train classifier on training_vads --> use it to map dev-set predictions to labels
     if args.evaluate_special_classifiers:
-        results.update(special_classifiers_metrics(vad_preds, labels_targets, args))
+        results.update(special_classifiers_metrics(vad_preds, labels_targets, mode, args))
 
     # Try VA metric [commented out]
     # va_preds = vad_preds[:, :2]
@@ -129,17 +129,15 @@ def compute_metrics_regression_vad(vad_targets, vad_preds, emo_lbl_idx_to_vad,
     return results
 
 # constants:
-EVAL_LABELS_CSV = "eval_labels.csv"
-EVAL_PREDS_CSV = "eval_preds.csv"
 TRAIN_VAD_CSV = "trained_vad.csv"
 
 
-def special_classifiers_metrics(eval_preds, eval_labels, args):
+def special_classifiers_metrics(eval_preds, eval_labels, mode, args):
     results = {}
 
-    # cache the dev-set we evaluate CLFs on (so results can be recreated)
-    np.savetxt(os.path.join(args.summary_path, EVAL_LABELS_CSV), eval_labels)
-    np.savetxt(os.path.join(args.summary_path, EVAL_PREDS_CSV), eval_preds)
+    # cache the dev/test-set we evaluate CLFs on (so results can be recreated easily)
+    np.savetxt(os.path.join(args.summary_path, f"{mode}_labels.csv"), eval_labels)
+    np.savetxt(os.path.join(args.summary_path, f"{mode}_preds.csv"), eval_preds)
 
     # load training model results
     arr = np.loadtxt(os.path.join(args.summary_path, TRAIN_VAD_CSV))

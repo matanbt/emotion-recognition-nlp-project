@@ -53,7 +53,7 @@ def evaluate(args,
         result = model_args.compute_metrics(targets, preds)
     else:  # regression case
         result = model_args.compute_metrics(targets, preds, model_args.emotions_vads_lst,
-                                            labels, args)
+                                            labels, mode, args)
 
     results.update(result)
 
