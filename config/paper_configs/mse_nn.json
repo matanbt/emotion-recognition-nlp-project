@@ -1,11 +1,12 @@
 {
-  "desc": "Baseline-model presented in GoEmotions original paper",
-  "task": "classification",
+  "desc": "MSE, 1NN",
+  "task": "regression",
 
-  "model_args": "baseline",
-  "model_args_override": {
+  "model_args": "regression",
+    "model_args_override": {
+    "hidden_layers_count": 1,
     "pool_mode": "cls",
-    "threshold": 0.3
+    "loss_func": "MSE"
   },
 
   "data_dir": "data/goemotions",
@@ -33,7 +34,7 @@
   "logging_steps": 1000,
   "save_steps": 5000,
 
-  "num_train_epochs": 4,
+  "num_train_epochs": 10,
   "weight_decay": 0.0,
   "gradient_accumulation_steps": 1,
   "adam_epsilon": 1e-8,
@@ -44,5 +45,5 @@
   "seed": 42,
   "train_batch_size": 16,
   "eval_batch_size": 32,
-  "learning_rate": 5e-5
+  "learning_rate": 5e-7
 }

@@ -1,11 +1,12 @@
 {
-  "desc": "Baseline-model presented in GoEmotions original paper",
-  "task": "classification",
+  "desc": "MAE, VAD scaling 2 (n_quantiles = 21), 1NN",
+  "task": "regression",
 
-  "model_args": "baseline",
+  "model_args": "vad_scaled_nrc_3",
   "model_args_override": {
+    "hidden_layers_count": 1,
     "pool_mode": "cls",
-    "threshold": 0.3
+	"loss_func": "MAE"
   },
 
   "data_dir": "data/goemotions",
@@ -20,9 +21,9 @@
   "model_name_or_path": "bert-base-cased",
   "tokenizer_name_or_path": "monologg/bert-base-cased-goemotions-original",
 
-  "with_noise": false,
-
   "max_seq_len": 50,
+
+  "with_noise": false,
 
   "evaluate_test_during_training": true,
   "eval_all_checkpoints": true,
@@ -33,7 +34,7 @@
   "logging_steps": 1000,
   "save_steps": 5000,
 
-  "num_train_epochs": 4,
+  "num_train_epochs": 10,
   "weight_decay": 0.0,
   "gradient_accumulation_steps": 1,
   "adam_epsilon": 1e-8,
