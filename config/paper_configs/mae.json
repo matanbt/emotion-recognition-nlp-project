@@ -1,5 +1,5 @@
 {
-  "desc": "MAE, 1NN",
+  "desc": "MAE",
   "task": "regression",
 
   "model_args": "regression",

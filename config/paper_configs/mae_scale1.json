@@ -1,5 +1,5 @@
 {
-  "desc": "MAE, VAD scaling 1 (n_quantiles = 28), 1NN",
+  "desc": "MAE, VAD scaling 1 (n_quantiles = 28)",
   "task": "regression",
 
   "model_args": "vad_scaled_nrc_1",
