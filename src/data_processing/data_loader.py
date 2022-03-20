@@ -158,6 +158,7 @@ class GoEmotionsProcessor(BaseProcessor):
                  remove_multi_lables=True, # TODO this is a temporary arg that should be removed! multi-labels should be dealt with !
                  add_external_training_fb=False,  # TODO This is another experimental parameter
                  add_external_training_eb=False,  # TODO This is another experimental parameter
+                 build_dataset=True,
                  vad_mapper_name: VADMapperName = None):
         """
             args - full config
@@ -165,6 +166,8 @@ class GoEmotionsProcessor(BaseProcessor):
             max_length - the max_length we want our sentences to be
             vad_mapper_name - instance of VADMapperName,
                          if vad_mapper_name is not initiated (=None), no VAD will be presented.
+            build_dataset - prevents fetching GE dataset. could be False ONLY when we just want an
+                            instance of this Data-Processor in order to use its utils.
         """
         logger.info("GoEmotionsProcessor: Fetching data and initiating the data-processor with: \n"
                     f"args, tokenizer={tokenizer}, max_length={max_length}, vad_mapper_name={vad_mapper_name}")
@@ -186,15 +189,16 @@ class GoEmotionsProcessor(BaseProcessor):
         # Create min_distance_for_each_dim (minimum-not zero distance for each dim of the vad)
         self.min_distance_for_each_dim = None if not self.with_vad else self.calc_min_distance_for_each_vad_dim()
 
-        # Fetch raw dataset, with columns: ['id', 'text', 'labels']
-        # 'self.raw_dataset' remains *untouched* in this class.
-        self.raw_dataset: DatasetDict = self._fetch_raw_dataset()
+        if build_dataset:
+            # Fetch raw dataset, with columns: ['id', 'text', 'labels']
+            # 'self.raw_dataset' remains *untouched* in this class.
+            self.raw_dataset: DatasetDict = self._fetch_raw_dataset()
 
-        if remove_multi_lables:
-            self.raw_dataset = self.raw_dataset.filter(self._hf_filterer__remove_multi_label)
+            if remove_multi_lables:
+                self.raw_dataset = self.raw_dataset.filter(self._hf_filterer__remove_multi_label)
 
-        # Will hold the processed data (data with encodings, special labels, etc)
-        self.processed_dataset: DatasetDict = self.raw_dataset
+            # Will hold the processed data (data with encodings, special labels, etc)
+            self.processed_dataset: DatasetDict = self.raw_dataset
 
     # --- Data PreProcessing ---
 
