@@ -11,13 +11,13 @@ Where `config.json` is a configuration file located in `./config`.
 | Experiment      | Config                   |
 | -----------     | -----------              |
 | Classification model (baseline)             | `paper_exp/ge_baseline.json`   |
-| MAE, 1NN             | `paper_exp/mae_nn.json`   |
-| MAE, SVM        | `paper_exp/mae_svm.json`  |
-| MSE, 1NN             | `paper_exp/mse_nn.json`        |
-| MAE+CE, 1NN           | `paper_exp/mae_ce_nn.json`     
-| MAE, VAD scaling 1, 1NN           | `paper_exp/mae_scale1_nn.json`     
-| MAE, VAD scaling 2, 1NN       | `paper_exp/mae_scale2_nn.json` 
-| MAE, VAD scaling 2, SVM           | `paper_exp/mae_scale2_svm.json`    
+| MAE, 1NN             | `paper_exp/mae.json`   |
+| MAE, SVM        | `paper_exp/mae.json`  |
+| MSE, 1NN             | `paper_exp/mse.json`        |
+| MAE+CE, 1NN           | `paper_exp/mae_ce.json`     
+| MAE, VAD scaling 1, 1NN           | `paper_exp/mae_scale1.json`     
+| MAE, VAD scaling 2, 1NN       | `paper_exp/mae_scale2.json` 
+| MAE, VAD scaling 2, SVM           | `paper_exp/mae_scale2.json`    
 
 
 
