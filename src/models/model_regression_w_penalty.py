@@ -37,14 +37,17 @@ class BertForMultiDimensionRegressionPenalty(BertPreTrainedModel):
             self.output_layer = nn.Sequential(*layers_lst)
 
         # Loss choices (comment-out unused losses before experimenting):
-        self._MSE = nn.MSELoss()
-        self._RMSE = lambda preds, targets : torch.sqrt(self._MSE(preds, targets))
-        self._L1 = nn.L1Loss()
+        losses = {
+            'MSE': nn.MSELoss(),
+            'MAE': nn.L1Loss(),
+            'EXP1': lambda input, target: torch.logsumexp((input - target).abs(), dim=-1).mean(),
+            'EXP2': lambda input, target: (input - target).abs().exp().sum(dim=-1).mean(),
+        }
 
         # Choose your loss here:
-        self.loss_func = self._L1 if (loss_func is None) else loss_func
-        self.ce = torch.nn.CrossEntropyLoss() # penalty
-        self.lambda_param = kwargs.get('lambda_param', 0.1) # weight of the CE
+        self.loss_func = losses['MAE'] if (loss_func is None) else losses[loss_func]
+        self.ce = torch.nn.CrossEntropyLoss()  # penalty
+        self.lambda_param = kwargs.get('lambda_param', 0.1)  # weight of the CE
 
         self.init_weights()
 
