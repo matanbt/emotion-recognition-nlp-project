@@ -1,13 +1,15 @@
 {
-  "desc": "MAE, VAD scaling 2 (n_quantiles = 21), 1NN",
+  "desc": "MSE, 1NN",
   "task": "regression",
 
-  "model_args": "vad_scaled_nrc_3",
-  "model_args_override": {
+  "model_args": "regression",
+    "model_args_override": {
     "hidden_layers_count": 1,
     "pool_mode": "cls",
-	"loss_func": "MAE"
+    "loss_func": "MSE"
   },
+  
+  "save_forward_passes": true,
 
   "data_dir": "data/goemotions",
   "nrc_vad_mapping_path": "data/mapping-emotions-to-vad/nrc-vad/NRC-VAD-Lexicon.txt",
@@ -21,9 +23,9 @@
   "model_name_or_path": "bert-base-cased",
   "tokenizer_name_or_path": "monologg/bert-base-cased-goemotions-original",
 
-  "max_seq_len": 50,
-
   "with_noise": false,
+
+  "max_seq_len": 50,
 
   "evaluate_test_during_training": true,
   "eval_all_checkpoints": true,
@@ -45,5 +47,5 @@
   "seed": 42,
   "train_batch_size": 16,
   "eval_batch_size": 32,
-  "learning_rate": 5e-5
+  "learning_rate": 5e-7
 }

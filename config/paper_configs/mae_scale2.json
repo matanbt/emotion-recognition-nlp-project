@@ -1,14 +1,15 @@
 {
-  "desc": "MAE+CE, 1NN",
+  "desc": "MAE, VAD scaling 2 (n_quantiles = 21), 1NN",
   "task": "regression",
 
-  "model_args": "regression",
+  "model_args": "vad_scaled_nrc_3",
   "model_args_override": {
     "hidden_layers_count": 1,
     "pool_mode": "cls",
-	'lambda_param': 0.1,
 	"loss_func": "MAE"
   },
+  
+  "save_forward_passes": true,
 
   "data_dir": "data/goemotions",
   "nrc_vad_mapping_path": "data/mapping-emotions-to-vad/nrc-vad/NRC-VAD-Lexicon.txt",
