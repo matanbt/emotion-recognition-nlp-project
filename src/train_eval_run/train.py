@@ -113,13 +113,11 @@ def train(args,
                 if args.logging_steps > 0 and global_step % args.logging_steps == 0:
                     if args.evaluate_test_during_training:
                         evaluate(args, model, model_args, tb_writer, test_dataset, "test", global_step)
-                    else:
-                        if args.get('save_forward_passes') and global_step >= 15000:
-                            args.evaluate_special_classifiers = True  # allows classifiers eval in `compute_metrics` func
-                            save_training_to_csv(model, train_dataset, args)  # comment this out if not used
-                        evaluate(args, model, model_args, tb_writer, dev_dataset, "dev", global_step)
-                        evaluate(args, model, model_args, tb_writer, test_dataset, "test", global_step) # TODO-REMOVE-ME this is just for experiments
-                        args.evaluate_special_classifiers = False
+                    if args.get('save_forward_passes') and global_step >= 15000:
+                        args.evaluate_special_classifiers = True  # allows classifiers eval in `compute_metrics` func
+                        save_training_to_csv(model, train_dataset, args)  # comment this out if not used
+                    evaluate(args, model, model_args, tb_writer, dev_dataset, "dev", global_step)
+                    args.evaluate_special_classifiers = False
 
                 if args.save_steps > 0 and global_step % args.save_steps == 0:
                     save_model_checkpoint(args, model, tokenizer, global_step, optimizer, scheduler)
