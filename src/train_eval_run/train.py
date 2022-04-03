@@ -182,7 +182,7 @@ def save_training_to_csv(model, train_dataset, args, csv_f_name="trained_vad.csv
             outputs = model(**batch)
             loss, logits = outputs[:2]
 
-            arr[i] = [train_dataset['labels'][i][0]] + list(logits.squeeze(dim=0))
+            arr[i] = [train_dataset['labels'][i][0]] + list(logits.squeeze(dim=0).cpu().numpy())
 
         i += 1
 
