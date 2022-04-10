@@ -40,12 +40,12 @@ from src.train_eval_run import utils
 from src.train_eval_run.evaluate import only_eval
 from src.train_eval_run.utils import compute_metrics_classification
 
+# @Shir Change here paths to suit you here
 PATH_CACHED_MODEL_DIR = "./paper-stuff/cahced-models/MAE_SCALED_checkpoint-20000"
 PATH_OF_SAVED_MODEL = f"{PATH_CACHED_MODEL_DIR}/pytorch_model.bin"
 CONFIG_NAME = "exp_clfs/mae_5_vad_scaled.json"
 
-# PATH_OF_SAVED_MODEL = "./MAE_MEAN_checkpoint-22700/pytorch_model.bin"
-# CONFIG_NAME = "exp3/new_baseline.json"
+
 
 # BOILER PLATE FOR LOADING -------------------------------------------------------------
 def load_model():
@@ -107,9 +107,8 @@ def pipline_imdb():
     emo_lbl_idx_to_vad = data_processor.get_emotions_vads_lst()
 
     # load imb
-    dataset_size = 5000 # how much to select from the dataset
     dataset = load_dataset("imdb")
-    eval_imdb = dataset['train'].shuffle()  #.select(list(range(dataset_size)))  # can shuffle and select
+    eval_imdb = dataset['test'] #.shuffle()  #.select(list(range(dataset_size)))  # can shuffle and select
     eval_imdb = data_processor.process_new_dataset(eval_imdb, 200)  # TODO change max_len
     eval_imdb.set_format(type='torch',
                          columns=['input_ids', 'attention_mask', 'token_type_ids', 'label'])
@@ -127,9 +126,8 @@ def pipline_imdb():
             # print(f">> VAD = {predicted_vads[i]} || [real] Label = {example['label']}")
 
     # Save IMDB vads (test)
-    np.savetxt(os.path.join(PATH_CACHED_MODEL_DIR, "imdb_train_predicted_vads.csv"), predicted_vads)
+    np.savetxt(os.path.join(PATH_CACHED_MODEL_DIR, "imdb_test_predicted_vads.csv"), predicted_vads)
 
-    # TODO logistic regression from VAD to SENTIMENT
     # Calculate some metrics
     thresholds = np.arange(0, 1, 0.05)
     accuracy_by_threshold = np.zeros(len(thresholds))
@@ -226,15 +224,67 @@ def svm_emoint():
     print(f">> [XGBoost] Accuracy on training: {model.score(X_train, y_train)}")
     print(f">> [XGBoost] Accuracy on test: {model.score(X_test, y_test)}")
 
+
 def pipline_isaer():
     dataset = datasets.load_dataset('csv', data_files='data/isear/isear.csv')
 
     print("")
 
+
 def emotion_pipeline():
-    pass
+    model_dict = load_model()
+    model = model_dict['model']
+    data_processor = model_dict['data_processor']
+    emo_lbl_idx_to_vad = data_processor.get_emotions_vads_lst()
+
+    # load imb
+    train_size = 3000
+    dataset = load_dataset("emotion")
+    train_dataset = dataset['train'] # .select(list(range(train_size)))  #.shuffle()
+    test_dataset = dataset['test']
+    train_dataset = data_processor.process_new_dataset(train_dataset, 100)
+    test_dataset = data_processor.process_new_dataset(test_dataset, 100)
+    train_dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'token_type_ids', 'label'])
+    test_dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'token_type_ids', 'label'])
+    dl_train_dataset = torch.utils.data.DataLoader(train_dataset, batch_size=1)
+    dl_test_dataset = torch.utils.data.DataLoader(test_dataset, batch_size=1)
+
+    # Run regression model
+    train_predicted_vads = torch.zeros((len(train_dataset), 3))
+    test_predicted_vads = torch.zeros((len(test_dataset), 3))
+
+    model.eval()
+    with torch.no_grad():
+        dl_train_dataset = tqdm(dl_train_dataset, desc="Training on Emotion")
+        for i, example in enumerate(dl_train_dataset):
+            outputs = model(**example)
+            train_predicted_vads[i] = outputs[0]
+
+        dl_test_dataset = tqdm(dl_test_dataset, desc="Testing on Emotion")
+        for i, example in enumerate(dl_test_dataset):
+            outputs = model(**example)
+            test_predicted_vads[i] = outputs[0]
+
+    # Save Emotion vads
+    np.savetxt(os.path.join(PATH_CACHED_MODEL_DIR, "emotion_train_predicted_vads.csv"), train_predicted_vads)
+    np.savetxt(os.path.join(PATH_CACHED_MODEL_DIR, "emotion_test_predicted_vads.csv"), test_predicted_vads)
+
+    # svm from VAD
+    # TODO make sure the following line is OK type wise for mode.fit
+    X_train, X_test, y_train, y_test = train_predicted_vads, test_predicted_vads, train_dataset['label'], test_dataset['label']
+
+    model = svm.SVC()
+    model.fit(X_train, y_train)
+
+    print(f">> [SVM] Accuracy on training: {model.score(X_train, y_train)}")
+    print(f">> [SVM] Accuracy on test: {model.score(X_test, y_test)}")
+
+    model = XGBClassifier(num_class=4)
+    model.fit(X_train, y_train)
 
 
 if __name__ == '__main__':
-    pipline_emoint()
-    svm_emoint()
+    print("---- Testing IMDB with valence threshold -----")
+    pipline_imdb()
+    print("---- Testing Emotion with SVM -----")
+    emotion_pipeline() #57%
