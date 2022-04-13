@@ -21,6 +21,7 @@ Where `config.json` is a configuration file located in `./config`.
 
 
 ## Directories and Files
+- `config`: stores all the (JSON) configurations of experiments we run while writing the paper, baseline includes.
 - `notebooks`: directory for all notebooks we write during the research.
 - `src`: The code, based on pytorch implementation of GoEmotions baseline.
   - `data_processing`: package to preprocess all sorts of data. `data_loader.py` defines the essential data processor for our datasets.
@@ -31,7 +32,8 @@ Where `config.json` is a configuration file located in `./config`.
   - `goemotions`: 
     - `emotions.txt`: list of emotions, each line number represent the index of the emotions in GoEmotions dataset.
     - `train.tsv`, `dev.tsv`, `test.tsv`: GoEmotions dataset split done by the paper. 
-  - ..
+  - additional datasets we experimented with.
+- `paper-stuff`: Visualization of the model and VAD spaces we use in the paper.
 
 ## Requirements:
 - torch==1.4.0
@@ -41,6 +43,9 @@ Where `config.json` is a configuration file located in `./config`.
 - pandas
 - tensorboard
 - sklearn
+
+## Paper Link
+...
 
 ## Acknowledgements
 - Original dataset (GoEmotions) and baseline implementation can be found at [Google Research repo](https://github.com/google-research/google-research/tree/master/goemotions).
