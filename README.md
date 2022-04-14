@@ -15,9 +15,8 @@ Where `config.json` is a configuration file located in `./config`.
 | MAE, SVM        | `paper_configs/mae.json`  |
 | MSE, 1NN             | `paper_configs/mse.json`        |
 | MAE+CE, 1NN           | `paper_configs/mae_ce.json`     
-| MAE, VAD scaling 1, 1NN           | `paper_configs/mae_scale1.json`     
-| MAE, VAD scaling 2, 1NN       | `paper_configs/mae_scale2.json` 
-| MAE, VAD scaling 2, SVM           | `paper_configs/mae_scale2.json`    
+| MAE, VAD scaled, 1NN       | `paper_configs/mae_scaled.json` 
+| MAE, VAD scaled, SVM           | `paper_configs/mae_scaled.json`    
 
 
 
