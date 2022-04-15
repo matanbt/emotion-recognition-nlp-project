@@ -2,8 +2,9 @@
 .ipynb_checkpoints
 
 # Python's Virtual env
-nlp-proj-env
+env-nlp-proj
 
 # Pycharm
 .idea
 desktop.ini
+lab.py
