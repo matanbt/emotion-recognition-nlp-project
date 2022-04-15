@@ -285,6 +285,6 @@ def emotion_pipeline():
 
 if __name__ == '__main__':
     print("---- Testing IMDB with valence threshold -----")
-    pipline_imdb()
+    pipline_imdb() # 69%
     print("---- Testing Emotion with SVM -----")
     emotion_pipeline() #57%

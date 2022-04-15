@@ -77,8 +77,6 @@ def load_model():
     dev_dataset = processor.get_dataset_by_mode('dev')
     test_dataset = processor.get_dataset_by_mode('test')
 
-    # %%
-
     model = BertForMultiDimensionRegression(config=config,
                                             **vars(model_args))
 
@@ -149,7 +147,7 @@ def print_metrics(split, label_targets, label_preds):
 
     print(f"---> Split: {split} || Accuracy: {acc_score} || macro_f1: {macro_f1_score}")
 
-    return accuracy_score, macro_f1_score
+    return acc_score, macro_f1_score
 
 
 # TODO tune C as well
@@ -160,8 +158,8 @@ def rbf_accuracy_per_gamma(X_train, y_train, X_val, y_val):
              resulting model on the VALIDATION set.
     """
     print(" [RBF ACCURACY PER (gamma, c)] ")
-    gamma_labels = np.arange(-3, 2, 0.5)
-    c_labels = np.arange(-3, 4, 0.5)
+    gamma_labels = np.arange(0, 2, 0.5)
+    c_labels = np.arange(-0.5, 3, 0.5)
     gamma_lst, c_lst = 10 ** gamma_labels, 10 ** c_labels
     df_dev_f1 = pd.DataFrame(0, index=gamma_labels, columns=c_labels, dtype=float)
     df_dev_acc = pd.DataFrame(0, index=gamma_labels, columns=c_labels, dtype=float)
@@ -247,16 +245,16 @@ def run_clf(summary_path, cached_eval=True):
 
 
     # ---------------- CLFs logic - play with stuff here:  ------------------------------
-    res = rbf_accuracy_per_gamma(train_vads, train_labels, eval_preds, eval_labels)
-    print(res)
-    df_train_acc, df_train_f1, df_dev_acc, df_dev_f1 = res
-    df_train_f1.to_pickle(os.path.join(summary_path, "df_train_f1.csv"))
-    df_train_acc.to_pickle(os.path.join(summary_path, "df_train_acc.csv"))
-    df_dev_f1.to_pickle(os.path.join(summary_path, "df_dev_f1.csv"))
-    df_dev_acc.to_pickle(os.path.join(summary_path, "df_dev_acc.csv"))
+    # res = rbf_accuracy_per_gamma(train_vads, train_labels, eval_preds, eval_labels)
+    # print(res)
+    # df_train_acc, df_train_f1, df_dev_acc, df_dev_f1 = res
+    # df_train_f1.to_pickle(os.path.join(summary_path, "df_train_f1.pkl"))
+    # df_train_acc.to_pickle(os.path.join(summary_path, "df_train_acc.pkl"))
+    # df_dev_f1.to_pickle(os.path.join(summary_path, "df_dev_f1.pkl"))
+    # df_dev_acc.to_pickle(os.path.join(summary_path, "df_dev_acc.pkl"))
 
     clfs_dict = {
-        'svm': SVC(C=60, gamma=1),
+        'svm': SVC(C=10, gamma=3.5),
         # '1NN': KNeighborsClassifier(1),
         # 'tree': DecisionTreeClassifier(criterion='entropy', random_state=0),
         # 'forest': RandomForestClassifier(max_depth=2, random_state=0),
@@ -316,7 +314,7 @@ MAE_5_PATH = "results\EXP_WITH_CLASSIFIERS\MAE_5_summary_regression_model_04_03_
 MSE_5_PATH = os.path.join("results", "EXP_WITH_CLASSIFIERS", "MSE_5_summary_regression_model_04_03_2022_12_06")
 MAE_5_SCALED_3_PATH = "results\EXP_WITH_CLASSIFIERS\MAE_5_VAD_SCALED_3_summary_regression_model_04_03_2022_18_20"
 
-run_clf(MAE_5_SCALED_3_PATH, cached_eval=True)
+run_clf(MAE_5_PATH, cached_eval=True)
 
 
 
