@@ -1,5 +1,10 @@
 # Emotion Recognition : From discretion to dimention - NLP Final Project
 
+## Introduction
+Implementation for the model we present in the paper, was created as part of final-project in NLP course, in TAU.
+Our model uses BERT and VAD emotions representations to fit an emotion detection model to GoEmotions.
+
+
 ## Usage
 
  `$ python main.py --config {my-config-file.json}`
@@ -17,7 +22,6 @@ Where `config.json` is a configuration file located in `./config`.
 | MAE+CE, 1NN           | `paper_configs/mae_ce.json`     
 | MAE, VAD scaled, 1NN       | `paper_configs/mae_scaled.json` 
 | MAE, VAD scaled, SVM           | `paper_configs/mae_scaled.json`    
-
 
 
 ## Directories and Files
