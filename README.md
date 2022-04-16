@@ -1,11 +1,20 @@
-# Emotion Recognition : From discretion to dimention - NLP Final Project
+# Emotion Recognition - NLP Final Project
 
 ## Introduction
-Implementation for the model we present in the paper, was created as part of final-project in NLP course, in TAU.
-Our model uses BERT and VAD emotions representations to fit an emotion detection model to GoEmotions.
+Implementation for the emotion recognition model we present in the paper, was created as part of final-project in NLP course, in TAU.
 
+Our model uses BERT and VAD emotions representations to train an emotion detection model using GoEmotions dataset. 
+The model can extract specific emotions from text, as well as their 3D representations (in VAD space). 
+
+
+#### Model Architecture
+<img src="./paper-stuff/model_pipeline.png" width="600"/>
+
+#### Paper 
 
 ## Usage
+
+To train and evaluate a model, simply execute:
 
  `$ python main.py --config {my-config-file.json}`
 
@@ -23,6 +32,11 @@ Where `config.json` is a configuration file located in `./config`.
 | MAE, VAD scaled, 1NN       | `paper_configs/mae_scaled.json` 
 | MAE, VAD scaled, SVM           | `paper_configs/mae_scaled.json`    
 
+## Pipelines Usage
+
+- If you wish to classify your own text by running the model as part of *full pipeline*, use the `single_example_pipeline.py` script 
+  (you'll just need to change the constants describing the model).
+- If you wish to train and evaluate *full datasets in different ways*, as presented in the paper, use the `zeroshot_pipelines.py` script.
 
 ## Directories and Files
 - `config`: stores all the (JSON) configurations of experiments we run while writing the paper, baseline includes.
@@ -40,6 +54,8 @@ Where `config.json` is a configuration file located in `./config`.
 - `paper-stuff`: Visualization of the model and VAD spaces we use in the paper.
 
 ## Requirements:
+
+Python 3.8 with the following dependencies:
 - torch==1.4.0
 - transformers==2.11.0
 - datasets
@@ -47,9 +63,6 @@ Where `config.json` is a configuration file located in `./config`.
 - pandas
 - tensorboard
 - sklearn
-
-## Paper Link
-...
 
 ## Acknowledgements
 - Original dataset (GoEmotions) and baseline implementation can be found at [Google Research repo](https://github.com/google-research/google-research/tree/master/goemotions).
