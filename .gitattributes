@@ -1,0 +1,4 @@
+# ignore notebooks and data when analyzing the code
+notebooks/* linguist-vendored
+data/* linguist-vendored
+paper-stuff/* linguist-vendored
