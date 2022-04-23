@@ -11,7 +11,7 @@ The model can extract specific emotions from text, as well as their 3D represent
 <img src="./paper-stuff/model_pipeline.png" width="600"/>
 
 #### Paper 
-https://github.com/matanbt/emotion-recognition-nlp-project/blob/master/paper-stuff/paper.pdf
+[Link to the paper](https://github.com/matanbt/emotion-recognition-nlp-project/blob/master/paper-stuff/paper.pdf)
 
 ## Usage
 
